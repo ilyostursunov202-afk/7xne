@@ -274,15 +274,20 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 5
+  test_sequence: 6
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Admin Panel for Product Management"
-  stuck_tasks: []
+    - "Product Likes (Wishlist)"
+    - "Add to Cart"
+    - "Card Payment (Checkout)"
+  stuck_tasks:
+    - "Product Likes (Wishlist)"
+    - "Add to Cart"
+    - "Card Payment (Checkout)"
   test_all: false
-  test_priority: "high_first"
+  test_priority: "stuck_first"
 
 agent_communication:
   - agent: "main"
