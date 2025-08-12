@@ -207,33 +207,75 @@ class Cart(BaseModel):
     total: float = 0.0
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-# Coupon Models
+# Coupon Models (Enhanced)
 class CouponType(str, Enum):
     PERCENTAGE = "percentage"
     FIXED = "fixed"
+    BUY_ONE_GET_ONE = "bogo"
+    FREE_SHIPPING = "free_shipping"
+
+class CouponScope(str, Enum):
+    GLOBAL = "global"
+    CATEGORY = "category" 
+    PRODUCT = "product"
+    SELLER = "seller"
 
 class CouponCreate(BaseModel):
     code: str
     type: CouponType
     value: float  # percentage (0-100) or fixed amount
+    scope: CouponScope = CouponScope.GLOBAL
+    scope_value: Optional[str] = None  # category_id, product_id, or seller_id
     min_order_amount: Optional[float] = None
     max_discount: Optional[float] = None
     usage_limit: Optional[int] = None
+    usage_per_user: Optional[int] = None
+    starts_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
     is_active: bool = True
+    description: Optional[str] = None
+
+class CouponUpdate(BaseModel):
+    code: Optional[str] = None
+    type: Optional[CouponType] = None
+    value: Optional[float] = None
+    scope: Optional[CouponScope] = None
+    scope_value: Optional[str] = None
+    min_order_amount: Optional[float] = None
+    max_discount: Optional[float] = None
+    usage_limit: Optional[int] = None
+    usage_per_user: Optional[int] = None
+    starts_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    is_active: Optional[bool] = None
+    description: Optional[str] = None
 
 class Coupon(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     code: str
     type: CouponType
     value: float
+    scope: CouponScope = CouponScope.GLOBAL
+    scope_value: Optional[str] = None
     min_order_amount: Optional[float] = None
     max_discount: Optional[float] = None
     usage_limit: Optional[int] = None
+    usage_per_user: Optional[int] = None
     used_count: int = 0
+    starts_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
     is_active: bool = True
+    description: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CouponUsage(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    coupon_id: str
+    user_id: str
+    order_id: str
+    discount_amount: float
+    used_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 # Payment Transaction (Enhanced)
 class PaymentTransaction(BaseModel):
