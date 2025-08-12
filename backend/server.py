@@ -469,8 +469,8 @@ async def create_checkout_session(request: CheckoutRequest):
             cancel_url=cancel_url,
             metadata={
                 "cart_id": request.cart_id,
-                "user_id": cart.get("user_id", ""),
-                "session_id": cart.get("session_id", "")
+                "user_id": cart.get("user_id") or "guest",
+                "session_id": cart.get("session_id") or "guest"
             }
         )
         
