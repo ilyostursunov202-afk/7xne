@@ -196,4 +196,8 @@ agent_communication:
   - agent: "main"
     message: "User reported basket and product pages not working. Found missing routes in App.js and import issues in ProductDetail.js. Need to fix these first before continuing PWA implementation."
   - agent: "testing"
+    message: "Backend testing complete - ✅ Cart API endpoints and Product API endpoints all working perfectly. Issues confirmed to be frontend routing problems."
+  - agent: "main"
+    message: "Fixed frontend routing issues by adding /cart and /product/:id routes with proper wrapper components. Ready for frontend testing."
+  - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETE: All cart and product API endpoints are working perfectly. Tested 15/15 scenarios successfully including: cart creation, item addition/removal, product listing, product details, categories, and brands. Backend is solid and ready for frontend integration. The issue is confirmed to be in frontend routing, not backend functionality."
