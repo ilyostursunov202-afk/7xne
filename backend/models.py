@@ -332,15 +332,54 @@ class SellerProfileUpdate(BaseModel):
     website: Optional[str] = None
     social_media: Optional[Dict[str, str]] = None
 
-class SellerStats(BaseModel):
-    total_products: int
-    total_sales: float
-    total_orders: int
-    average_rating: float
-    commission_earned: float
-    monthly_sales: Dict[str, float]
-    top_products: List[Dict[str, Any]]
-    recent_orders: List[Dict[str, Any]]
+# Notification Models
+class NotificationType(str, Enum):
+    ORDER_CREATED = "order_created"
+    ORDER_UPDATED = "order_updated"
+    ORDER_SHIPPED = "order_shipped"
+    ORDER_DELIVERED = "order_delivered"
+    ORDER_CANCELLED = "order_cancelled"
+    PAYMENT_SUCCESS = "payment_success"
+    PAYMENT_FAILED = "payment_failed"
+    PRODUCT_REVIEW = "product_review"
+    SELLER_APPLICATION = "seller_application"
+    PROMOTION = "promotion"
+
+class NotificationChannel(str, Enum):
+    EMAIL = "email"
+    PUSH = "push"
+    SMS = "sms"
+    IN_APP = "in_app"
+
+class NotificationTemplate(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: NotificationType
+    channel: NotificationChannel
+    subject_template: str
+    body_template: str
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class Notification(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    type: NotificationType
+    channel: NotificationChannel
+    title: str
+    message: str
+    data: Optional[Dict[str, Any]] = None
+    is_read: bool = False
+    sent_at: Optional[datetime] = None
+    read_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class PushSubscription(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    endpoint: str
+    p256dh: str
+    auth: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 # Commission Models
 class CommissionRule(BaseModel):
