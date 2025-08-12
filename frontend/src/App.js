@@ -119,10 +119,8 @@ const AppProvider = ({ children }) => {
 
   // Update cart count when cart changes
   useEffect(() => {
-    console.log('Cart changed:', cart);
     if (cart?.items) {
       const count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-      console.log('Calculated cart count:', count, 'from items:', cart.items);
       setCartCount(count);
     }
   }, [cart]);
