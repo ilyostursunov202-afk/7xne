@@ -71,6 +71,7 @@ const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [wishlist, setWishlist] = useState([]);
+  const cartInitialized = useRef(false);
   
   // Initialize user from localStorage
   useEffect(() => {
