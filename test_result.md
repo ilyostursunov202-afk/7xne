@@ -138,27 +138,33 @@ backend:
 frontend:
   - task: "Cart/Basket Page"
     implemented: true
-    working: false
+    working: true
     file: "App.js, Cart.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
       - working: false
         agent: "main"
         comment: "Cart component exists but no route for /cart in main App component. User reported basket page not working."
+      - working: true
+        agent: "main"
+        comment: "Fixed routing by adding CartPageWrapper component and /cart route in App.js. Backend APIs confirmed working."
   
   - task: "Product Detail Page"
     implemented: true
-    working: false
-    file: "App.js, ProductDetail.js"
-    stuck_count: 1
+    working: true
+    file: "App.js, ProductDetail.js, Reviews.js"
+    stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
       - working: false
         agent: "main"
         comment: "ProductDetail component exists but missing /product/:id route and has import error for Reviews component. User reported product pages not working."
+      - working: true
+        agent: "main"
+        comment: "Fixed routing by adding ProductDetailPageWrapper component and /product/:id route. Reviews.js component already exists. Fixed isWishlisted prop handling."
 
   - task: "PWA Implementation"
     implemented: false
