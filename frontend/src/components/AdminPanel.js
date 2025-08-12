@@ -51,7 +51,9 @@ const AdminPanel = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCouponModal, setShowCouponModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
   
   const [couponForm, setCouponForm] = useState({
     code: '',
@@ -65,6 +67,17 @@ const AdminPanel = () => {
     usage_per_user: '',
     description: '',
     is_active: true
+  });
+
+  const [productForm, setProductForm] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: '',
+    brand: '',
+    inventory: '',
+    images: '',
+    tags: ''
   });
 
   useEffect(() => {
