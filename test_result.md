@@ -213,7 +213,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "All major functionality completed"
+    - "JavaScript compilation fixes verification"
+    - "All major functionality testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
