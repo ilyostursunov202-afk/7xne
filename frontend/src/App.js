@@ -1603,7 +1603,36 @@ const SearchPage = () => {
   );
 };
 
-// Continue with remaining components... I need to create more files for the rest
+// Cart page component wrapper
+const CartPageWrapper = () => {
+  const { cart, updateCartQuantity, removeFromCart } = useAppContext();
+  return <CartPage cart={cart} updateCartQuantity={updateCartQuantity} removeFromCart={removeFromCart} />;
+};
+
+// Product detail page wrapper  
+const ProductDetailPageWrapper = () => {
+  const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
+  
+  const isWishlisted = (productId) => {
+    return wishlist.some(item => item.id === productId);
+  };
+
+  const handleWishlistToggle = (productId) => {
+    if (isWishlisted(productId)) {
+      removeFromWishlist(productId);
+    } else {
+      addToWishlist(productId);
+    }
+  };
+
+  return (
+    <ProductDetailPage 
+      addToCart={addToCart} 
+      isWishlisted={isWishlisted}
+      onToggleWishlist={handleWishlistToggle}
+    />
+  );
+};
 export default function App() {
   return (
     <Router>
