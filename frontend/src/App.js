@@ -86,13 +86,19 @@ const AppProvider = ({ children }) => {
     const initCart = async () => {
       try {
         let cartId = localStorage.getItem('cartId');
+        console.log('Cart initialization - cartId from localStorage:', cartId);
+        
         if (!cartId) {
+          console.log('No cartId found, creating new cart...');
           const response = await api.post('/api/cart');
           cartId = response.data.id;
           localStorage.setItem('cartId', cartId);
+          console.log('New cart created with ID:', cartId);
           setCart(response.data);
         } else {
+          console.log('Fetching existing cart with ID:', cartId);
           const response = await api.get(`/api/cart/${cartId}`);
+          console.log('Fetched cart data:', response.data);
           setCart(response.data);
         }
       } catch (error) {
@@ -100,6 +106,7 @@ const AppProvider = ({ children }) => {
         try {
           const response = await api.post('/api/cart');
           localStorage.setItem('cartId', response.data.id);
+          console.log('Fallback cart created with ID:', response.data.id);
           setCart(response.data);
         } catch (createError) {
           console.error('Error creating new cart:', createError);
