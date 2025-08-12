@@ -85,8 +85,9 @@ const AppProvider = ({ children }) => {
   // Initialize cart
   useEffect(() => {
     const initCart = async () => {
-      // Prevent double initialization by checking if cart is already being initialized
-      if (cart !== null) return;
+      // Prevent double initialization
+      if (cartInitialized.current) return;
+      cartInitialized.current = true;
       
       try {
         let cartId = localStorage.getItem('cartId');
@@ -119,7 +120,7 @@ const AppProvider = ({ children }) => {
     };
     
     initCart();
-  }, [cart]);
+  }, []);
 
   // Load wishlist for logged-in users
   useEffect(() => {
