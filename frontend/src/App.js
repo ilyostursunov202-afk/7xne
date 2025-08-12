@@ -1612,13 +1612,12 @@ const CartPageWrapper = () => {
 // Product detail page wrapper  
 const ProductDetailPageWrapper = () => {
   const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
+  const { id } = useParams();
   
-  const isWishlisted = (productId) => {
-    return wishlist.some(item => item.id === productId);
-  };
+  const isWishlisted = wishlist.some(item => item.id === id);
 
   const handleWishlistToggle = (productId) => {
-    if (isWishlisted(productId)) {
+    if (wishlist.some(item => item.id === productId)) {
       removeFromWishlist(productId);
     } else {
       addToWishlist(productId);
