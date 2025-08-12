@@ -398,7 +398,7 @@ def main():
     
     tester = EcommerceAPITester()
     
-    # Test sequence
+    # Test sequence - Authentication and Wishlist focused
     test_methods = [
         tester.test_root_endpoint,
         tester.test_create_product,
@@ -415,6 +415,15 @@ def main():
         tester.test_get_cart,  # Test cart after adding item
         tester.test_remove_from_cart,
         tester.test_checkout_session_creation,
+        
+        # Authentication and Wishlist Tests
+        tester.test_user_login,
+        tester.test_get_wishlist,
+        tester.test_add_to_wishlist,
+        tester.test_get_wishlist,  # Verify item was added
+        tester.test_remove_from_wishlist,
+        tester.test_get_wishlist,  # Verify item was removed
+        tester.test_wishlist_flow,  # Complete flow test
         tester.test_get_orders
     ]
     
@@ -429,6 +438,14 @@ def main():
     # Print results
     print("\n" + "=" * 50)
     print(f"📊 Test Results: {tester.tests_passed}/{tester.tests_run} tests passed")
+    
+    # Specific wishlist test summary
+    print("\n🔍 WISHLIST FUNCTIONALITY SUMMARY:")
+    print("   - User Authentication: ✅ if login test passed")
+    print("   - Get Wishlist: ✅ if wishlist retrieval worked")
+    print("   - Add to Wishlist: ✅ if product addition worked")
+    print("   - Remove from Wishlist: ✅ if product removal worked")
+    print("   - Complete Flow: ✅ if full add/remove cycle worked")
     
     if tester.tests_passed == tester.tests_run:
         print("🎉 All tests passed!")
