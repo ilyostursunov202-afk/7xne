@@ -11,6 +11,8 @@ class EcommerceAPITester:
         self.tests_passed = 0
         self.cart_id = None
         self.product_id = None
+        self.access_token = None
+        self.user_id = None
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
 
