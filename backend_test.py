@@ -5,7 +5,7 @@ from datetime import datetime
 import uuid
 
 class EcommerceAPITester:
-    def __init__(self, base_url="https://marketcraft-9.preview.emergentagent.com"):
+    def __init__(self, base_url="https://d80afeaf-a107-473e-99e9-b5d4d91b17c9.preview.emergentagent.com"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
