@@ -37,7 +37,7 @@ MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 client = MongoClient(MONGO_URL)
 db = client["ecommerce"]
 
-# Collections
+# Collections (Enhanced)
 users_collection = db["users"]
 products_collection = db["products"]
 orders_collection = db["orders"]
@@ -45,7 +45,13 @@ cart_collection = db["cart"]
 reviews_collection = db["reviews"]
 wishlist_collection = db["wishlist"]
 coupons_collection = db["coupons"]
+coupon_usage_collection = db["coupon_usage"]
 seller_profiles_collection = db["seller_profiles"]
+commissions_collection = db["commissions"]
+commission_rules_collection = db["commission_rules"]
+notifications_collection = db["notifications"]
+notification_templates_collection = db["notification_templates"]
+push_subscriptions_collection = db["push_subscriptions"]
 payment_transactions_collection = db["payment_transactions"]
 search_collection = db["search_queries"]
 
