@@ -26,7 +26,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const ProductDetailPage = ({ addToCart, isWishlisted, onToggleWishlist }) => {
+const ProductDetailPage = ({ addToCart, wishlist, onToggleWishlist }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
