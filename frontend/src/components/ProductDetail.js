@@ -36,6 +36,9 @@ const ProductDetailPage = ({ addToCart, wishlist, onToggleWishlist }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
 
+  // Check if current product is wishlisted
+  const isWishlisted = wishlist ? wishlist.some(item => item.id === id) : false;
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
