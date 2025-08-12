@@ -616,12 +616,12 @@ const SearchPage = () => {
                 {/* Category */}
                 <div>
                   <label className="text-sm font-medium mb-2 block">Category</label>
-                  <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+                  <Select value={filters.category || undefined} onValueChange={(value) => handleFilterChange('category', value || '')}>
                     <SelectTrigger>
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All categories</SelectItem>
+                      <SelectItem value="all">All categories</SelectItem>
                       {categories.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
