@@ -323,7 +323,7 @@ def calculate_commission(order_total: float, seller_id: str, category: str = Non
 async def root():
     return {"message": "Advanced E-commerce API is running!", "version": "2.0.0"}
 
-# Authentication Routes
+# Enhanced Authentication Routes with Seller Support
 @app.post("/api/auth/register", response_model=UserResponse)
 async def register_user(user_data: UserCreate):
     try:
@@ -346,11 +346,268 @@ async def register_user(user_data: UserCreate):
         
         users_collection.insert_one(user_dict)
         
+        # If registering as seller, create seller application
+        if user_data.role == "seller" and user_data.seller_application:
+            seller_profile_data = SellerProfile(
+                user_id=user_dict["id"],
+                business_name=user_data.seller_application.business_name,
+                business_description=user_data.seller_application.business_description,
+                business_email=user_data.seller_application.business_email,
+                business_phone=user_data.seller_application.business_phone,
+                business_address=user_data.seller_application.business_address,
+                tax_id=user_data.seller_application.tax_id,
+                website=user_data.seller_application.website,
+                social_media=user_data.seller_application.social_media or {},
+                status="pending"
+            ).dict()
+            
+            seller_profiles_collection.insert_one(seller_profile_data)
+            
+            # Send notification to admins about new seller application
+            admin_users = list(users_collection.find({"role": "admin"}))
+            for admin in admin_users:
+                await send_notification(
+                    admin["id"],
+                    "seller_application",
+                    "New Seller Application",
+                    f"New seller application from {user_data.name} ({user_data.seller_application.business_name})",
+                    {"seller_id": user_dict["id"]},
+                    ["email", "in_app"]
+                )
+        
         # Remove password from response
         user_dict.pop("hashed_password", None)
         user_dict.pop("_id", None)
         
         return UserResponse(**user_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Seller Management Routes
+@app.post("/api/sellers/apply")
+async def apply_as_seller(seller_application: SellerApplication, current_user = Depends(get_current_user_required)):
+    try:
+        # Check if user already has a seller profile
+        existing_profile = seller_profiles_collection.find_one({"user_id": current_user["user_id"]})
+        if existing_profile:
+            raise HTTPException(status_code=400, detail="Seller profile already exists")
+        
+        # Create seller profile
+        seller_profile_data = SellerProfile(
+            user_id=current_user["user_id"],
+            business_name=seller_application.business_name,
+            business_description=seller_application.business_description,
+            business_email=seller_application.business_email,
+            business_phone=seller_application.business_phone,
+            business_address=seller_application.business_address,
+            tax_id=seller_application.tax_id,
+            website=seller_application.website,
+            social_media=seller_application.social_media or {},
+            status="pending"
+        ).dict()
+        
+        seller_profiles_collection.insert_one(seller_profile_data)
+        
+        # Update user role to seller
+        users_collection.update_one(
+            {"id": current_user["user_id"]},
+            {"$set": {"role": "seller", "updated_at": datetime.now(timezone.utc)}}
+        )
+        
+        # Send notification to admins
+        admin_users = list(users_collection.find({"role": "admin"}))
+        for admin in admin_users:
+            await send_notification(
+                admin["id"],
+                "seller_application",
+                "New Seller Application",
+                f"New seller application from {current_user['email']} ({seller_application.business_name})",
+                {"seller_id": current_user["user_id"]},
+                ["email", "in_app"]
+            )
+        
+        seller_profile_data.pop("_id", None)
+        return seller_profile_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sellers/profile")
+async def get_seller_profile(current_user = Depends(get_seller_user)):
+    try:
+        profile = seller_profiles_collection.find_one({"user_id": current_user["user_id"]})
+        if not profile:
+            raise HTTPException(status_code=404, detail="Seller profile not found")
+        
+        profile.pop("_id", None)
+        return profile
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/sellers/profile")
+async def update_seller_profile(profile_update: SellerProfileUpdate, current_user = Depends(get_seller_user)):
+    try:
+        update_data = {k: v for k, v in profile_update.dict().items() if v is not None}
+        update_data["updated_at"] = datetime.now(timezone.utc)
+        
+        result = seller_profiles_collection.update_one(
+            {"user_id": current_user["user_id"]},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Seller profile not found")
+        
+        updated_profile = seller_profiles_collection.find_one({"user_id": current_user["user_id"]})
+        updated_profile.pop("_id", None)
+        
+        return updated_profile
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sellers/dashboard")
+async def get_seller_dashboard(current_user = Depends(get_seller_user)):
+    try:
+        # Get seller profile
+        seller_profile = seller_profiles_collection.find_one({"user_id": current_user["user_id"]})
+        if not seller_profile:
+            raise HTTPException(status_code=404, detail="Seller profile not found")
+        
+        # Get seller products
+        products = list(products_collection.find({
+            "seller_id": current_user["user_id"], 
+            "is_active": True
+        }))
+        
+        # Get seller orders
+        orders = list(orders_collection.find({
+            "items.seller_id": current_user["user_id"]
+        }).sort("created_at", -1))
+        
+        # Calculate statistics
+        total_products = len(products)
+        total_orders = len(orders)
+        total_sales = sum(order.get("total_amount", 0) for order in orders if order.get("status") == "delivered")
+        
+        # Get monthly sales data
+        monthly_sales = {}
+        for order in orders:
+            if order.get("status") == "delivered":
+                month = order["created_at"].strftime("%Y-%m")
+                monthly_sales[month] = monthly_sales.get(month, 0) + order.get("total_amount", 0)
+        
+        # Get top products
+        product_sales = {}
+        for order in orders:
+            for item in order.get("items", []):
+                if item.get("seller_id") == current_user["user_id"]:
+                    product_id = item["product_id"]
+                    product_sales[product_id] = product_sales.get(product_id, 0) + (item["quantity"] * item["price"])
+        
+        top_products = []
+        for product_id, sales in sorted(product_sales.items(), key=lambda x: x[1], reverse=True)[:5]:
+            product = products_collection.find_one({"id": product_id})
+            if product:
+                product.pop("_id", None)
+                product["total_sales"] = sales
+                top_products.append(product)
+        
+        # Get recent orders
+        recent_orders = []
+        for order in orders[:10]:
+            order.pop("_id", None)
+            recent_orders.append(order)
+        
+        # Calculate average rating
+        seller_products_ids = [p["id"] for p in products]
+        reviews = list(reviews_collection.find({
+            "product_id": {"$in": seller_products_ids},
+            "is_approved": True
+        }))
+        
+        average_rating = 0.0
+        if reviews:
+            total_rating = sum(review["rating"] for review in reviews)
+            average_rating = total_rating / len(reviews)
+        
+        # Get commission earned
+        commissions = list(commissions_collection.find({
+            "seller_id": current_user["user_id"],
+            "status": "paid"
+        }))
+        commission_earned = sum(c.get("commission_amount", 0) for c in commissions)
+        
+        stats = SellerStats(
+            total_products=total_products,
+            total_sales=total_sales,
+            total_orders=total_orders,
+            average_rating=round(average_rating, 1),
+            commission_earned=commission_earned,
+            monthly_sales=monthly_sales,
+            top_products=top_products,
+            recent_orders=recent_orders
+        )
+        
+        return {
+            "profile": seller_profile,
+            "stats": stats.dict()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/sellers/{seller_id}/public")
+async def get_seller_public_profile(seller_id: str):
+    try:
+        seller_profile = seller_profiles_collection.find_one({
+            "user_id": seller_id,
+            "status": "approved"
+        })
+        if not seller_profile:
+            raise HTTPException(status_code=404, detail="Seller not found")
+        
+        # Get seller user info
+        user = users_collection.find_one({"id": seller_id})
+        
+        # Get seller products
+        products = list(products_collection.find({
+            "seller_id": seller_id,
+            "is_active": True
+        }).limit(20))
+        
+        for product in products:
+            product.pop("_id", None)
+            avg_rating, review_count = calculate_average_rating(product["id"])
+            product["rating"] = avg_rating
+            product["reviews_count"] = review_count
+        
+        seller_profile.pop("_id", None)
+        
+        # Remove sensitive information
+        seller_profile.pop("business_email", None)
+        seller_profile.pop("business_phone", None)
+        seller_profile.pop("tax_id", None)
+        seller_profile.pop("commission_rate", None)
+        seller_profile.pop("total_commission", None)
+        
+        return {
+            "seller": seller_profile,
+            "user_name": user["name"] if user else "Unknown",
+            "products": products
+        }
         
     except HTTPException:
         raise
