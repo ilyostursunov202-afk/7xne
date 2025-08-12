@@ -1199,12 +1199,9 @@ const HomePage = () => {
     fetchProducts();
   }, []);
 
-  const isWishlisted = (productId) => {
-    return wishlist.some(item => item.id === productId);
-  };
-
   const handleWishlistToggle = (productId) => {
-    if (isWishlisted(productId)) {
+    const isWishlisted = wishlist.some(item => item.id === productId);
+    if (isWishlisted) {
       removeFromWishlist(productId);
     } else {
       addToWishlist(productId);
