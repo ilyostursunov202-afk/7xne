@@ -4,11 +4,21 @@ from datetime import datetime, timezone
 import uuid
 from enum import Enum
 
-# User Models
+# Enhanced User Models with Seller Support
 class UserRole(str, Enum):
     CUSTOMER = "customer"
     SELLER = "seller"
     ADMIN = "admin"
+
+class SellerApplication(BaseModel):
+    business_name: str
+    business_description: str
+    business_email: str
+    business_phone: str
+    business_address: Dict[str, str]
+    tax_id: Optional[str] = None
+    website: Optional[str] = None
+    social_media: Optional[Dict[str, str]] = {}
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -16,6 +26,7 @@ class UserCreate(BaseModel):
     name: str
     phone: Optional[str] = None
     role: UserRole = UserRole.CUSTOMER
+    seller_application: Optional[SellerApplication] = None
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
