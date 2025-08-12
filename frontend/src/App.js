@@ -1643,6 +1643,8 @@ export default function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/cart" element={<CartPageWrapper />} />
+              <Route path="/product/:id" element={<ProductDetailPageWrapper />} />
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/orders" element={<OrderHistoryPage />} />
               {/* Add other routes */}
