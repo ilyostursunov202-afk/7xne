@@ -467,7 +467,14 @@ const AdminPanel = () => {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Product Management ({products.length})</CardTitle>
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button 
+                    onClick={() => {
+                      resetProductForm();
+                      setEditingProduct(null);
+                      setShowProductModal(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Product
                   </Button>
