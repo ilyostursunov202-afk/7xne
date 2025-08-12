@@ -251,24 +251,44 @@ class PaymentTransaction(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-# Seller Models
+# Seller Models (Enhanced)
+class SellerStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved" 
+    REJECTED = "rejected"
+    SUSPENDED = "suspended"
+
 class SellerProfile(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     business_name: str
-    business_description: Optional[str] = None
-    business_address: Optional[Address] = None
+    business_description: str
+    business_email: str
+    business_phone: str
+    business_address: Dict[str, str]
+    tax_id: Optional[str] = None
+    website: Optional[str] = None
+    social_media: Optional[Dict[str, str]] = {}
     commission_rate: float = 10.0  # percentage
     total_sales: float = 0.0
+    total_orders: int = 0
+    total_products: int = 0
     total_commission: float = 0.0
+    average_rating: float = 0.0
+    status: SellerStatus = SellerStatus.PENDING
     is_verified: bool = False
+    verification_documents: List[str] = []
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class SellerProfileCreate(BaseModel):
-    business_name: str
+class SellerProfileUpdate(BaseModel):
+    business_name: Optional[str] = None
     business_description: Optional[str] = None
-    business_address: Optional[Address] = None
+    business_email: Optional[str] = None
+    business_phone: Optional[str] = None
+    business_address: Optional[Dict[str, str]] = None
+    website: Optional[str] = None
+    social_media: Optional[Dict[str, str]] = None
 
 class SellerStats(BaseModel):
     total_products: int
@@ -276,3 +296,27 @@ class SellerStats(BaseModel):
     total_orders: int
     average_rating: float
     commission_earned: float
+    monthly_sales: Dict[str, float]
+    top_products: List[Dict[str, Any]]
+    recent_orders: List[Dict[str, Any]]
+
+# Commission Models
+class CommissionRule(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    category: Optional[str] = None  # None means default for all categories
+    commission_rate: float = 10.0  # percentage
+    min_order_value: Optional[float] = None
+    max_order_value: Optional[float] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class Commission(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    order_id: str
+    seller_id: str
+    order_total: float
+    commission_rate: float
+    commission_amount: float
+    status: str = "pending"  # pending, paid, disputed
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    paid_at: Optional[datetime] = None
