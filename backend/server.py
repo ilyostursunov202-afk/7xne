@@ -157,8 +157,8 @@ def calculate_average_rating(product_id: str) -> tuple[float, int]:
     avg_rating = total_rating / len(reviews)
     return round(avg_rating, 1), len(reviews)
 
-def apply_coupon(cart_total: float, coupon_code: str) -> tuple[float, str]:
-    """Apply coupon discount to cart total"""
+def apply_coupon(cart_total: float, coupon_code: str, user_id: Optional[str] = None, cart_items: List[Dict] = None) -> tuple[float, str]:
+    """Enhanced coupon application with advanced validation"""
     try:
         coupon = coupons_collection.find_one({
             "code": coupon_code,
@@ -168,31 +168,154 @@ def apply_coupon(cart_total: float, coupon_code: str) -> tuple[float, str]:
         if not coupon:
             return 0.0, "Invalid coupon code"
         
+        # Check if coupon has started
+        if coupon.get("starts_at") and datetime.now(timezone.utc) < coupon["starts_at"]:
+            return 0.0, "Coupon is not yet active"
+        
         # Check expiry
         if coupon.get("expires_at") and datetime.now(timezone.utc) > coupon["expires_at"]:
             return 0.0, "Coupon has expired"
         
-        # Check usage limit
+        # Check global usage limit
         if coupon.get("usage_limit") and coupon.get("used_count", 0) >= coupon["usage_limit"]:
             return 0.0, "Coupon usage limit exceeded"
+        
+        # Check per-user usage limit
+        if user_id and coupon.get("usage_per_user"):
+            user_usage = coupon_usage_collection.count_documents({
+                "coupon_id": coupon["id"],
+                "user_id": user_id
+            })
+            if user_usage >= coupon["usage_per_user"]:
+                return 0.0, "You have reached the usage limit for this coupon"
         
         # Check minimum order amount
         if coupon.get("min_order_amount") and cart_total < coupon["min_order_amount"]:
             return 0.0, f"Minimum order amount ${coupon['min_order_amount']:.2f} required"
         
-        # Calculate discount
+        # Check scope (category, product, seller)
+        if coupon["scope"] != "global" and cart_items:
+            scope_valid = False
+            eligible_total = 0.0
+            
+            for item in cart_items:
+                product = products_collection.find_one({"id": item["product_id"]})
+                if not product:
+                    continue
+                
+                item_eligible = False
+                if coupon["scope"] == "category" and product.get("category") == coupon.get("scope_value"):
+                    item_eligible = True
+                elif coupon["scope"] == "product" and product["id"] == coupon.get("scope_value"):
+                    item_eligible = True
+                elif coupon["scope"] == "seller" and product.get("seller_id") == coupon.get("scope_value"):
+                    item_eligible = True
+                
+                if item_eligible:
+                    scope_valid = True
+                    eligible_total += item["quantity"] * item["price"]
+            
+            if not scope_valid:
+                return 0.0, "Coupon is not applicable to items in your cart"
+            
+            # Use eligible total for scoped coupons
+            if eligible_total > 0:
+                cart_total = eligible_total
+        
+        # Calculate discount based on coupon type
+        discount = 0.0
         if coupon["type"] == "percentage":
             discount = cart_total * (coupon["value"] / 100)
             if coupon.get("max_discount"):
                 discount = min(discount, coupon["max_discount"])
-        else:  # fixed
+        elif coupon["type"] == "fixed":
             discount = coupon["value"]
+        elif coupon["type"] == "free_shipping":
+            discount = 10.0  # Assuming $10 shipping cost
+        elif coupon["type"] == "bogo":
+            # Buy one get one logic (simplified)
+            discount = cart_total * 0.5
         
         discount = min(discount, cart_total)  # Don't exceed cart total
         return discount, "Coupon applied successfully"
         
     except Exception as e:
         return 0.0, "Error applying coupon"
+
+async def send_notification(user_id: str, notification_type: str, title: str, message: str, data: Dict = None, channels: List[str] = None):
+    """Send notification through multiple channels"""
+    try:
+        if channels is None:
+            channels = ["in_app", "email"]  # Default channels
+        
+        for channel in channels:
+            notification_data = {
+                "id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "type": notification_type,
+                "channel": channel,
+                "title": title,
+                "message": message,
+                "data": data or {},
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc)
+            }
+            
+            notifications_collection.insert_one(notification_data)
+            
+            # Send email notification (placeholder - would integrate with SendGrid)
+            if channel == "email":
+                user = users_collection.find_one({"id": user_id})
+                if user:
+                    print(f"EMAIL: To {user['email']} - {title}: {message}")
+            
+            # Send push notification (placeholder - would integrate with web push)
+            elif channel == "push":
+                subscription = push_subscriptions_collection.find_one({"user_id": user_id})
+                if subscription:
+                    print(f"PUSH: To {user_id} - {title}: {message}")
+        
+    except Exception as e:
+        print(f"Error sending notification: {e}")
+
+def calculate_commission(order_total: float, seller_id: str, category: str = None) -> tuple[float, float]:
+    """Calculate commission for a seller"""
+    try:
+        # First check for category-specific rules
+        commission_rule = None
+        if category:
+            commission_rule = commission_rules_collection.find_one({
+                "category": category,
+                "is_active": True,
+                "$or": [
+                    {"min_order_value": {"$lte": order_total}},
+                    {"min_order_value": None}
+                ],
+                "$or": [
+                    {"max_order_value": {"$gte": order_total}},
+                    {"max_order_value": None}
+                ]
+            })
+        
+        # If no category rule, use default rule
+        if not commission_rule:
+            commission_rule = commission_rules_collection.find_one({
+                "category": None,
+                "is_active": True
+            })
+        
+        # If no rule found, get seller's default rate
+        if not commission_rule:
+            seller = seller_profiles_collection.find_one({"user_id": seller_id})
+            commission_rate = seller.get("commission_rate", 10.0) if seller else 10.0
+        else:
+            commission_rate = commission_rule["commission_rate"]
+        
+        commission_amount = order_total * (commission_rate / 100)
+        return commission_rate, commission_amount
+        
+    except Exception as e:
+        return 10.0, order_total * 0.1
 
 # API Routes
 
