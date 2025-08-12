@@ -221,10 +221,14 @@ const AppProvider = ({ children }) => {
     
     try {
       setLoading(true);
+      console.log('Adding to cart - Before:', { cartId: cart.id, currentItems: cart.items?.length || 0 });
       const response = await api.post(`/api/cart/${cart.id}/items`, null, {
         params: { product_id: productId, quantity }
       });
+      console.log('Add to cart API response:', response.data);
+      console.log('Items in response:', response.data.items?.length || 0);
       setCart(response.data);
+      console.log('Cart state updated');
     } catch (error) {
       console.error('Error adding to cart:', error);
     } finally {
