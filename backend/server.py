@@ -315,6 +315,60 @@ async def get_product_recommendations(product_id: str, user_id: Optional[str] = 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.put("/api/products/{product_id}", response_model=Product)
+async def update_product(product_id: str, product_update: ProductCreate):
+    try:
+        # Check if product exists
+        existing_product = products_collection.find_one({"id": product_id})
+        if not existing_product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Generate AI description if name, category, or brand changed
+        ai_description = existing_product.get("ai_generated_description")
+        if (product_update.name != existing_product.get("name") or
+            product_update.category != existing_product.get("category") or
+            product_update.brand != existing_product.get("brand")):
+            ai_description = await generate_product_description(
+                product_update.name, product_update.category, product_update.brand
+            )
+        
+        # Update product data
+        update_data = product_update.dict()
+        update_data["ai_generated_description"] = ai_description
+        update_data["updated_at"] = datetime.now(timezone.utc)
+        
+        # Update in database
+        products_collection.update_one(
+            {"id": product_id},
+            {"$set": update_data}
+        )
+        
+        # Get updated product
+        updated_product = products_collection.find_one({"id": product_id})
+        updated_product.pop("_id", None)
+        return Product(**updated_product)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/products/{product_id}")
+async def delete_product(product_id: str):
+    try:
+        # Check if product exists
+        existing_product = products_collection.find_one({"id": product_id})
+        if not existing_product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Delete product
+        products_collection.delete_one({"id": product_id})
+        
+        return {"message": "Product deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Cart routes
 @app.post("/api/cart")
 async def create_cart(user_id: Optional[str] = None, session_id: Optional[str] = None):
