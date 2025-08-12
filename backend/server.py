@@ -1509,6 +1509,179 @@ async def get_search_analytics(current_user = Depends(get_admin_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Coupon Management Routes
+@app.post("/api/admin/coupons", response_model=Coupon)
+async def create_coupon(coupon_data: CouponCreate, current_user = Depends(get_admin_user)):
+    try:
+        # Check if coupon code already exists
+        existing_coupon = coupons_collection.find_one({"code": coupon_data.code})
+        if existing_coupon:
+            raise HTTPException(status_code=400, detail="Coupon code already exists")
+        
+        coupon_dict = Coupon(**coupon_data.dict()).dict()
+        coupons_collection.insert_one(coupon_dict)
+        
+        coupon_dict.pop("_id", None)
+        return Coupon(**coupon_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/coupons")
+async def get_all_coupons(current_user = Depends(get_admin_user), skip: int = 0, limit: int = 50):
+    try:
+        coupons = list(coupons_collection.find().skip(skip).limit(limit).sort("created_at", -1))
+        for coupon in coupons:
+            coupon.pop("_id", None)
+        
+        return {"coupons": coupons}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/coupons/{coupon_id}")
+async def get_coupon(coupon_id: str, current_user = Depends(get_admin_user)):
+    try:
+        coupon = coupons_collection.find_one({"id": coupon_id})
+        if not coupon:
+            raise HTTPException(status_code=404, detail="Coupon not found")
+        
+        coupon.pop("_id", None)
+        return coupon
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/coupons/{coupon_id}")
+async def update_coupon(coupon_id: str, coupon_update: CouponUpdate, current_user = Depends(get_admin_user)):
+    try:
+        existing_coupon = coupons_collection.find_one({"id": coupon_id})
+        if not existing_coupon:
+            raise HTTPException(status_code=404, detail="Coupon not found")
+        
+        # Check if new code conflicts with existing coupons
+        if coupon_update.code and coupon_update.code != existing_coupon["code"]:
+            conflicting_coupon = coupons_collection.find_one({"code": coupon_update.code})
+            if conflicting_coupon:
+                raise HTTPException(status_code=400, detail="Coupon code already exists")
+        
+        update_data = {k: v for k, v in coupon_update.dict().items() if v is not None}
+        update_data["updated_at"] = datetime.now(timezone.utc)
+        
+        coupons_collection.update_one({"id": coupon_id}, {"$set": update_data})
+        
+        updated_coupon = coupons_collection.find_one({"id": coupon_id})
+        updated_coupon.pop("_id", None)
+        
+        return updated_coupon
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/admin/coupons/{coupon_id}")
+async def delete_coupon(coupon_id: str, current_user = Depends(get_admin_user)):
+    try:
+        result = coupons_collection.delete_one({"id": coupon_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Coupon not found")
+        
+        return {"message": "Coupon deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/coupons/validate")
+async def validate_coupon(coupon_code: str, cart_total: float, current_user = Depends(get_current_user)):
+    try:
+        cart_items = []
+        if current_user:
+            # Get user's cart to validate scope
+            cart_id = "temp"  # This would come from request in real implementation
+            cart = cart_collection.find_one({"user_id": current_user["user_id"]})
+            if cart:
+                cart_items = cart.get("items", [])
+        
+        discount_amount, message = apply_coupon(
+            cart_total, 
+            coupon_code, 
+            current_user["user_id"] if current_user else None,
+            cart_items
+        )
+        
+        return {
+            "valid": discount_amount > 0,
+            "discount_amount": discount_amount,
+            "message": message
+        }
+        
+    except Exception as e:
+        return {
+            "valid": False,
+            "discount_amount": 0.0,
+            "message": "Error validating coupon"
+        }
+
+# Notification Routes
+@app.get("/api/notifications")
+async def get_user_notifications(current_user = Depends(get_current_user_required), skip: int = 0, limit: int = 20):
+    try:
+        notifications = list(notifications_collection.find({
+            "user_id": current_user["user_id"]
+        }).skip(skip).limit(limit).sort("created_at", -1))
+        
+        for notification in notifications:
+            notification.pop("_id", None)
+        
+        # Mark in-app notifications as read
+        notifications_collection.update_many(
+            {
+                "user_id": current_user["user_id"],
+                "channel": "in_app",
+                "is_read": False
+            },
+            {
+                "$set": {
+                    "is_read": True,
+                    "read_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        return {"notifications": notifications}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/notifications/push/subscribe")
+async def subscribe_to_push(subscription_data: Dict, current_user = Depends(get_current_user_required)):
+    try:
+        # Store push subscription
+        push_subscription_data = PushSubscription(
+            user_id=current_user["user_id"],
+            endpoint=subscription_data["endpoint"],
+            p256dh=subscription_data["keys"]["p256dh"],
+            auth=subscription_data["keys"]["auth"]
+        ).dict()
+        
+        # Remove existing subscription for this user
+        push_subscriptions_collection.delete_many({"user_id": current_user["user_id"]})
+        
+        # Add new subscription
+        push_subscriptions_collection.insert_one(push_subscription_data)
+        
+        return {"message": "Push subscription saved successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
