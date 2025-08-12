@@ -870,6 +870,130 @@ const AdminPanel = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Product Modal */}
+        <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingProduct ? 'Edit Product' : 'Create New Product'}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleProductSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <Label htmlFor="name">Product Name *</Label>
+                  <Input
+                    id="name"
+                    value={productForm.name}
+                    onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                    placeholder="iPhone 15 Pro Max"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="price">Price ($) *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={productForm.price}
+                    onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                    placeholder="999.99"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="inventory">Inventory *</Label>
+                  <Input
+                    id="inventory"
+                    type="number"
+                    value={productForm.inventory}
+                    onChange={(e) => setProductForm({...productForm, inventory: e.target.value})}
+                    placeholder="50"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="category">Category *</Label>
+                  <Input
+                    id="category"
+                    value={productForm.category}
+                    onChange={(e) => setProductForm({...productForm, category: e.target.value})}
+                    placeholder="Electronics"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="brand">Brand *</Label>
+                  <Input
+                    id="brand"
+                    value={productForm.brand}
+                    onChange={(e) => setProductForm({...productForm, brand: e.target.value})}
+                    placeholder="Apple"
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={productForm.description}
+                    onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                    placeholder="Detailed product description..."
+                    rows="4"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="images">Product Images (one URL per line)</Label>
+                  <Textarea
+                    id="images"
+                    value={productForm.images}
+                    onChange={(e) => setProductForm({...productForm, images: e.target.value})}
+                    placeholder="https://example.com/image1.jpg
+https://example.com/image2.jpg"
+                    rows="4"
+                  />
+                  <p className="text-sm text-gray-600 mt-1">
+                    Enter one image URL per line. First image will be the main product image.
+                  </p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="tags">Tags (comma-separated)</Label>
+                  <Input
+                    id="tags"
+                    value={productForm.tags}
+                    onChange={(e) => setProductForm({...productForm, tags: e.target.value})}
+                    placeholder="smartphone, apple, flagship, 5g"
+                  />
+                  <p className="text-sm text-gray-600 mt-1">
+                    Separate tags with commas. These help with search and categorization.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setShowProductModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                  {editingProduct ? 'Update Product' : 'Create Product'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
