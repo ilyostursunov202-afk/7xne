@@ -1612,10 +1612,7 @@ const CartPageWrapper = () => {
 // Product detail page wrapper  
 const ProductDetailPageWrapper = () => {
   const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
-  const { id } = useParams();
   
-  const isWishlisted = wishlist.some(item => item.id === id);
-
   const handleWishlistToggle = (productId) => {
     if (wishlist.some(item => item.id === productId)) {
       removeFromWishlist(productId);
@@ -1627,7 +1624,7 @@ const ProductDetailPageWrapper = () => {
   return (
     <ProductDetailPage 
       addToCart={addToCart} 
-      isWishlisted={isWishlisted}
+      wishlist={wishlist}
       onToggleWishlist={handleWishlistToggle}
     />
   );
