@@ -213,7 +213,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "PWA Implementation"
+    - "All major functionality completed"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
