@@ -229,8 +229,11 @@ const AppProvider = ({ children }) => {
       });
       console.log('Add to cart API response:', response.data);
       console.log('Items in response:', response.data.items?.length || 0);
-      setCart(response.data);
-      console.log('Cart state updated');
+      
+      // Force a new object to ensure React re-renders
+      const updatedCart = { ...response.data };
+      setCart(updatedCart);
+      console.log('Cart state updated with new object:', updatedCart);
     } catch (error) {
       console.error('Error adding to cart:', error);
     } finally {
