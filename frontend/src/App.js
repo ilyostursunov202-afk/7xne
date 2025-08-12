@@ -1849,6 +1849,7 @@ function App() {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/product/:id" element={<ProductDetailPage />} />
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/admin" element={<AdminPanel />} />
               <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
               <Route path="/checkout/cancel" element={<CheckoutCancelPage />} />
             </Routes>
