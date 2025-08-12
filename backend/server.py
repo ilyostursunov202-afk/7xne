@@ -819,6 +819,12 @@ async def remove_from_cart(cart_id: str, product_id: str, current_user = Depends
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Checkout Models
+class CheckoutRequest(BaseModel):
+    cart_id: str
+    origin_url: str
+    coupon_code: Optional[str] = None
+
 # Checkout and Payment Routes (Enhanced)
 @app.post("/api/checkout/session")
 async def create_checkout_session(request: CheckoutRequest, current_user = Depends(get_current_user)):
