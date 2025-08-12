@@ -197,6 +197,75 @@ const AdminPanel = () => {
     });
   };
 
+  const resetProductForm = () => {
+    setProductForm({
+      name: '',
+      description: '',
+      price: '',
+      category: '',
+      brand: '',
+      inventory: '',
+      images: '',
+      tags: ''
+    });
+  };
+
+  const handleProductSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const productData = {
+        ...productForm,
+        price: parseFloat(productForm.price),
+        inventory: parseInt(productForm.inventory),
+        images: productForm.images.split('\n').filter(url => url.trim()),
+        tags: productForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      };
+
+      if (editingProduct) {
+        await api.put(`/api/products/${editingProduct.id}`, productData);
+      } else {
+        await api.post('/api/products', productData);
+      }
+
+      setShowProductModal(false);
+      setEditingProduct(null);
+      resetProductForm();
+      fetchAdminData();
+      alert(`Product ${editingProduct ? 'updated' : 'created'} successfully!`);
+    } catch (error) {
+      console.error('Error saving product:', error);
+      alert(error.response?.data?.detail || 'Failed to save product');
+    }
+  };
+
+  const handleEditProduct = (product) => {
+    setEditingProduct(product);
+    setProductForm({
+      name: product.name,
+      description: product.description || '',
+      price: product.price.toString(),
+      category: product.category || '',
+      brand: product.brand || '',
+      inventory: product.inventory.toString(),
+      images: (product.images || []).join('\n'),
+      tags: (product.tags || []).join(', ')
+    });
+    setShowProductModal(true);
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    
+    try {
+      await api.delete(`/api/products/${productId}`);
+      setProducts(products.filter(p => p.id !== productId));
+      alert('Product deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Failed to delete product');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved': return 'bg-green-100 text-green-800';
