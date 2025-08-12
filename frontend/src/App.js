@@ -519,12 +519,15 @@ const SearchPage = () => {
   }, [filters]);
 
   const handleFilterChange = (key, value) => {
-    const newFilters = { ...filters, [key]: value };
+    const newFilters = { 
+      ...filters, 
+      [key]: value === 'all' ? '' : value 
+    };
     setFilters(newFilters);
     
     const newSearchParams = new URLSearchParams();
     Object.entries(newFilters).forEach(([k, v]) => {
-      if (v) newSearchParams.set(k, v);
+      if (v && v !== 'all') newSearchParams.set(k, v);
     });
     setSearchParams(newSearchParams);
   };
