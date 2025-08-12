@@ -1,22 +1,27 @@
-from fastapi import FastAPI, HTTPException, Request, Depends, Query
+from fastapi import FastAPI, HTTPException, Request, Depends, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pymongo import MongoClient
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os
 import uuid
-from dotenv import load_dotenv
-from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 import json
 import asyncio
+from dotenv import load_dotenv
+
+# Import our custom modules
+from models import *
+from auth import AuthManager, get_current_user, get_current_user_required, get_admin_user, get_seller_user
+
+# Import AI and Stripe integrations
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 # Load environment variables
 load_dotenv()
 
-app = FastAPI(title="E-commerce API", description="Modern E-commerce Platform with AI")
+app = FastAPI(title="E-commerce API", description="Advanced E-commerce Platform with AI", version="2.0.0")
 
 # CORS middleware
 app.add_middleware(
@@ -33,10 +38,14 @@ client = MongoClient(MONGO_URL)
 db = client["ecommerce"]
 
 # Collections
-products_collection = db["products"]
 users_collection = db["users"]
+products_collection = db["products"]
 orders_collection = db["orders"]
 cart_collection = db["cart"]
+reviews_collection = db["reviews"]
+wishlist_collection = db["wishlist"]
+coupons_collection = db["coupons"]
+seller_profiles_collection = db["seller_profiles"]
 payment_transactions_collection = db["payment_transactions"]
 search_collection = db["search_queries"]
 
@@ -46,83 +55,9 @@ stripe_checkout = None
 
 # AI integration
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+auth_manager = AuthManager()
 
-# Pydantic models
-class Product(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    description: str
-    price: float
-    category: str
-    brand: str
-    images: List[str] = []
-    inventory: int = 0
-    rating: float = 0.0
-    reviews_count: int = 0
-    tags: List[str] = []
-    ai_generated_description: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class ProductCreate(BaseModel):
-    name: str
-    description: str
-    price: float
-    category: str
-    brand: str
-    images: List[str] = []
-    inventory: int
-    tags: List[str] = []
-
-class User(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    email: str
-    name: str
-    phone: Optional[str] = None
-    address: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class CartItem(BaseModel):
-    product_id: str
-    quantity: int
-    price: float
-
-class Cart(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
-    items: List[CartItem] = []
-    total: float = 0.0
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class Order(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
-    items: List[CartItem]
-    total: float
-    status: str = "pending"  # pending, paid, shipped, delivered, cancelled
-    payment_session_id: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class CheckoutRequest(BaseModel):
-    cart_id: str
-    origin_url: str
-
-class PaymentTransaction(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    session_id: str
-    amount: float
-    currency: str = "usd"
-    status: str = "pending"  # pending, paid, failed, expired
-    payment_status: str = "unpaid"
-    user_id: Optional[str] = None
-    order_id: Optional[str] = None
-    metadata: Dict[str, Any] = {}
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-# AI Helper Functions
+# Helper Functions
 async def generate_product_description(product_name: str, category: str, brand: str) -> str:
     """Generate AI-powered product description"""
     try:
@@ -168,7 +103,6 @@ async def smart_search(query: str, products: List[dict]) -> List[dict]:
 async def get_recommendations(user_id: Optional[str] = None, product_id: Optional[str] = None) -> List[str]:
     """Generate product recommendations"""
     try:
-        # Get user's order history or current product context
         context = ""
         if user_id:
             orders = list(orders_collection.find({"user_id": user_id}).sort("created_at", -1).limit(5))
@@ -186,7 +120,7 @@ async def get_recommendations(user_id: Optional[str] = None, product_id: Optiona
             if product:
                 context += f" Current product: {product['name']} in {product['category']} category"
         
-        all_products = list(products_collection.find().limit(20))
+        all_products = list(products_collection.find({"is_active": True}).limit(20))
         products_info = [{"id": p["id"], "name": p["name"], "category": p.get("category", ""), "brand": p.get("brand", ""), "price": p.get("price", 0)} for p in all_products]
         
         chat = LlmChat(
@@ -207,15 +141,165 @@ async def get_recommendations(user_id: Optional[str] = None, product_id: Optiona
     except Exception as e:
         return []
 
+def calculate_average_rating(product_id: str) -> tuple[float, int]:
+    """Calculate average rating and review count for a product"""
+    reviews = list(reviews_collection.find({"product_id": product_id, "is_approved": True}))
+    if not reviews:
+        return 0.0, 0
+    
+    total_rating = sum(review["rating"] for review in reviews)
+    avg_rating = total_rating / len(reviews)
+    return round(avg_rating, 1), len(reviews)
+
+def apply_coupon(cart_total: float, coupon_code: str) -> tuple[float, str]:
+    """Apply coupon discount to cart total"""
+    try:
+        coupon = coupons_collection.find_one({
+            "code": coupon_code,
+            "is_active": True
+        })
+        
+        if not coupon:
+            return 0.0, "Invalid coupon code"
+        
+        # Check expiry
+        if coupon.get("expires_at") and datetime.now(timezone.utc) > coupon["expires_at"]:
+            return 0.0, "Coupon has expired"
+        
+        # Check usage limit
+        if coupon.get("usage_limit") and coupon.get("used_count", 0) >= coupon["usage_limit"]:
+            return 0.0, "Coupon usage limit exceeded"
+        
+        # Check minimum order amount
+        if coupon.get("min_order_amount") and cart_total < coupon["min_order_amount"]:
+            return 0.0, f"Minimum order amount ${coupon['min_order_amount']:.2f} required"
+        
+        # Calculate discount
+        if coupon["type"] == "percentage":
+            discount = cart_total * (coupon["value"] / 100)
+            if coupon.get("max_discount"):
+                discount = min(discount, coupon["max_discount"])
+        else:  # fixed
+            discount = coupon["value"]
+        
+        discount = min(discount, cart_total)  # Don't exceed cart total
+        return discount, "Coupon applied successfully"
+        
+    except Exception as e:
+        return 0.0, "Error applying coupon"
+
 # API Routes
 
 @app.get("/")
 async def root():
-    return {"message": "E-commerce API is running!"}
+    return {"message": "Advanced E-commerce API is running!", "version": "2.0.0"}
 
-# Product routes
+# Authentication Routes
+@app.post("/api/auth/register", response_model=UserResponse)
+async def register_user(user_data: UserCreate):
+    try:
+        # Check if user already exists
+        existing_user = users_collection.find_one({"email": user_data.email})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Hash password
+        hashed_password = auth_manager.get_password_hash(user_data.password)
+        
+        # Create user
+        user_dict = UserInDB(
+            email=user_data.email,
+            hashed_password=hashed_password,
+            name=user_data.name,
+            phone=user_data.phone,
+            role=user_data.role
+        ).dict()
+        
+        users_collection.insert_one(user_dict)
+        
+        # Remove password from response
+        user_dict.pop("hashed_password", None)
+        user_dict.pop("_id", None)
+        
+        return UserResponse(**user_dict)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/auth/login", response_model=Token)
+async def login_user(user_data: UserLogin):
+    try:
+        # Find user
+        user = users_collection.find_one({"email": user_data.email})
+        if not user or not auth_manager.verify_password(user_data.password, user["hashed_password"]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
+        
+        if not user.get("is_active", True):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account is disabled"
+            )
+        
+        # Create tokens
+        access_token = auth_manager.create_access_token(
+            data={"sub": user["id"], "email": user["email"], "role": user["role"]}
+        )
+        refresh_token = auth_manager.create_refresh_token(
+            data={"sub": user["id"], "email": user["email"]}
+        )
+        
+        return Token(access_token=access_token, refresh_token=refresh_token)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/auth/me", response_model=UserResponse)
+async def get_current_user_info(current_user = Depends(get_current_user_required)):
+    try:
+        user = users_collection.find_one({"id": current_user["user_id"]})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user.pop("hashed_password", None)
+        user.pop("_id", None)
+        
+        return UserResponse(**user)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/auth/profile", response_model=UserResponse)
+async def update_user_profile(user_update: UserUpdate, current_user = Depends(get_current_user_required)):
+    try:
+        update_data = {k: v for k, v in user_update.dict().items() if v is not None}
+        update_data["updated_at"] = datetime.now(timezone.utc)
+        
+        users_collection.update_one(
+            {"id": current_user["user_id"]},
+            {"$set": update_data}
+        )
+        
+        updated_user = users_collection.find_one({"id": current_user["user_id"]})
+        updated_user.pop("hashed_password", None)
+        updated_user.pop("_id", None)
+        
+        return UserResponse(**updated_user)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Product Routes (Enhanced)
 @app.post("/api/products", response_model=Product)
-async def create_product(product: ProductCreate):
+async def create_product(product: ProductCreate, current_user = Depends(get_current_user)):
     try:
         # Generate AI description
         ai_description = await generate_product_description(
@@ -229,9 +313,15 @@ async def create_product(product: ProductCreate):
         product_data["updated_at"] = datetime.now(timezone.utc)
         product_data["rating"] = 0.0
         product_data["reviews_count"] = 0
+        product_data["is_active"] = True
+        
+        # Add seller_id if user is logged in
+        if current_user:
+            product_data["seller_id"] = current_user["user_id"]
         
         products_collection.insert_one(product_data)
         return Product(**product_data)
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -242,17 +332,21 @@ async def get_products(
     brand: Optional[str] = Query(None),
     min_price: Optional[float] = Query(None),
     max_price: Optional[float] = Query(None),
+    seller_id: Optional[str] = Query(None),
     sort_by: Optional[str] = Query("created_at"),
     sort_order: Optional[str] = Query("desc"),
-    limit: int = Query(20)
+    limit: int = Query(20),
+    current_user = Depends(get_current_user)
 ):
     try:
         # Build filter query
-        filter_query = {}
-        if category:
+        filter_query = {"is_active": True}
+        if category and category != "all":
             filter_query["category"] = {"$regex": category, "$options": "i"}
-        if brand:
+        if brand and brand != "all":
             filter_query["brand"] = {"$regex": brand, "$options": "i"}
+        if seller_id:
+            filter_query["seller_id"] = seller_id
         if min_price is not None or max_price is not None:
             price_filter = {}
             if min_price is not None:
@@ -268,6 +362,10 @@ async def get_products(
         # Convert MongoDB _id to string and remove it
         for product in products:
             product.pop("_id", None)
+            # Update rating and review count
+            avg_rating, review_count = calculate_average_rating(product["id"])
+            product["rating"] = avg_rating
+            product["reviews_count"] = review_count
         
         # Apply AI-powered search if search query provided
         if search:
@@ -275,6 +373,7 @@ async def get_products(
             search_collection.insert_one({
                 "query": search,
                 "results_count": len(products),
+                "user_id": current_user["user_id"] if current_user else None,
                 "timestamp": datetime.now(timezone.utc)
             })
             
@@ -282,58 +381,57 @@ async def get_products(
             products = await smart_search(search, products)
         
         return products
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/products/{product_id}", response_model=Product)
 async def get_product(product_id: str):
     try:
-        product = products_collection.find_one({"id": product_id})
+        product = products_collection.find_one({"id": product_id, "is_active": True})
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
         
         product.pop("_id", None)
+        
+        # Update rating and review count
+        avg_rating, review_count = calculate_average_rating(product_id)
+        product["rating"] = avg_rating
+        product["reviews_count"] = review_count
+        
         return Product(**product)
+        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/products/{product_id}/recommendations")
-async def get_product_recommendations(product_id: str, user_id: Optional[str] = Query(None)):
-    try:
-        recommended_ids = await get_recommendations(user_id=user_id, product_id=product_id)
-        
-        recommended_products = []
-        for product_id in recommended_ids[:6]:
-            product = products_collection.find_one({"id": product_id})
-            if product:
-                product.pop("_id", None)
-                recommended_products.append(product)
-        
-        return {"recommendations": recommended_products}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.put("/api/products/{product_id}", response_model=Product)
-async def update_product(product_id: str, product_update: ProductCreate):
+async def update_product(product_id: str, product_update: ProductUpdate, current_user = Depends(get_current_user_required)):
     try:
         # Check if product exists
-        existing_product = products_collection.find_one({"id": product_id})
+        existing_product = products_collection.find_one({"id": product_id, "is_active": True})
         if not existing_product:
             raise HTTPException(status_code=404, detail="Product not found")
         
-        # Generate AI description if name, category, or brand changed
-        ai_description = existing_product.get("ai_generated_description")
-        if (product_update.name != existing_product.get("name") or
-            product_update.category != existing_product.get("category") or
-            product_update.brand != existing_product.get("brand")):
-            ai_description = await generate_product_description(
-                product_update.name, product_update.category, product_update.brand
-            )
+        # Check if user owns the product or is admin
+        if (existing_product.get("seller_id") != current_user["user_id"] and 
+            current_user.get("role") != "admin"):
+            raise HTTPException(status_code=403, detail="Not authorized to update this product")
         
-        # Update product data
-        update_data = product_update.dict()
+        # Generate AI description if name, category, or brand changed
+        update_data = {k: v for k, v in product_update.dict().items() if v is not None}
+        
+        ai_description = existing_product.get("ai_generated_description")
+        if (update_data.get("name") != existing_product.get("name") or
+            update_data.get("category") != existing_product.get("category") or
+            update_data.get("brand") != existing_product.get("brand")):
+            
+            name = update_data.get("name", existing_product.get("name"))
+            category = update_data.get("category", existing_product.get("category"))
+            brand = update_data.get("brand", existing_product.get("brand"))
+            ai_description = await generate_product_description(name, category, brand)
+        
         update_data["ai_generated_description"] = ai_description
         update_data["updated_at"] = datetime.now(timezone.utc)
         
@@ -346,77 +444,305 @@ async def update_product(product_id: str, product_update: ProductCreate):
         # Get updated product
         updated_product = products_collection.find_one({"id": product_id})
         updated_product.pop("_id", None)
+        
+        # Update rating and review count
+        avg_rating, review_count = calculate_average_rating(product_id)
+        updated_product["rating"] = avg_rating
+        updated_product["reviews_count"] = review_count
+        
         return Product(**updated_product)
+        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/products/{product_id}")
-async def delete_product(product_id: str):
+async def delete_product(product_id: str, current_user = Depends(get_current_user_required)):
     try:
         # Check if product exists
-        existing_product = products_collection.find_one({"id": product_id})
+        existing_product = products_collection.find_one({"id": product_id, "is_active": True})
         if not existing_product:
             raise HTTPException(status_code=404, detail="Product not found")
         
-        # Delete product
-        products_collection.delete_one({"id": product_id})
+        # Check if user owns the product or is admin
+        if (existing_product.get("seller_id") != current_user["user_id"] and 
+            current_user.get("role") != "admin"):
+            raise HTTPException(status_code=403, detail="Not authorized to delete this product")
+        
+        # Soft delete product
+        products_collection.update_one(
+            {"id": product_id},
+            {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc)}}
+        )
         
         return {"message": "Product deleted successfully"}
+        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Cart routes
-@app.post("/api/cart")
-async def create_cart(user_id: Optional[str] = None, session_id: Optional[str] = None):
+@app.get("/api/products/{product_id}/recommendations")
+async def get_product_recommendations(product_id: str, current_user = Depends(get_current_user)):
     try:
-        if not user_id and not session_id:
-            session_id = str(uuid.uuid4())
+        user_id = current_user["user_id"] if current_user else None
+        recommended_ids = await get_recommendations(user_id=user_id, product_id=product_id)
         
-        cart_data = {
-            "id": str(uuid.uuid4()),
-            "user_id": user_id,
-            "session_id": session_id,
-            "items": [],
-            "total": 0.0,
-            "updated_at": datetime.now(timezone.utc)
-        }
+        recommended_products = []
+        for rec_id in recommended_ids[:6]:
+            product = products_collection.find_one({"id": rec_id, "is_active": True})
+            if product:
+                product.pop("_id", None)
+                # Update rating and review count
+                avg_rating, review_count = calculate_average_rating(rec_id)
+                product["rating"] = avg_rating
+                product["reviews_count"] = review_count
+                recommended_products.append(product)
+        
+        return {"recommendations": recommended_products}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Review Routes
+@app.post("/api/products/{product_id}/reviews", response_model=ReviewResponse)
+async def create_review(product_id: str, review_data: ReviewCreate, current_user = Depends(get_current_user_required)):
+    try:
+        # Check if product exists
+        product = products_collection.find_one({"id": product_id, "is_active": True})
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Check if user already reviewed this product
+        existing_review = reviews_collection.find_one({
+            "product_id": product_id,
+            "user_id": current_user["user_id"]
+        })
+        if existing_review:
+            raise HTTPException(status_code=400, detail="You have already reviewed this product")
+        
+        # Get user info
+        user = users_collection.find_one({"id": current_user["user_id"]})
+        
+        # Create review
+        review_dict = Review(
+            product_id=product_id,
+            user_id=current_user["user_id"],
+            rating=review_data.rating,
+            comment=review_data.comment
+        ).dict()
+        
+        reviews_collection.insert_one(review_dict)
+        
+        # Prepare response
+        review_dict.pop("_id", None)
+        review_response = ReviewResponse(
+            id=review_dict["id"],
+            product_id=review_dict["product_id"],
+            user_name=user["name"],
+            rating=review_dict["rating"],
+            comment=review_dict["comment"],
+            created_at=review_dict["created_at"],
+            is_approved=review_dict["is_approved"]
+        )
+        
+        return review_response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/products/{product_id}/reviews", response_model=List[ReviewResponse])
+async def get_product_reviews(product_id: str, limit: int = Query(20), skip: int = Query(0)):
+    try:
+        reviews = list(reviews_collection.find({
+            "product_id": product_id,
+            "is_approved": True
+        }).sort("created_at", -1).skip(skip).limit(limit))
+        
+        review_responses = []
+        for review in reviews:
+            review.pop("_id", None)
+            user = users_collection.find_one({"id": review["user_id"]})
+            
+            review_response = ReviewResponse(
+                id=review["id"],
+                product_id=review["product_id"],
+                user_name=user["name"] if user else "Anonymous",
+                rating=review["rating"],
+                comment=review["comment"],
+                created_at=review["created_at"],
+                is_approved=review["is_approved"]
+            )
+            review_responses.append(review_response)
+        
+        return review_responses
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Wishlist Routes
+@app.get("/api/wishlist")
+async def get_user_wishlist(current_user = Depends(get_current_user_required)):
+    try:
+        wishlist = wishlist_collection.find_one({"user_id": current_user["user_id"]})
+        if not wishlist:
+            # Create empty wishlist
+            wishlist_data = Wishlist(user_id=current_user["user_id"]).dict()
+            wishlist_collection.insert_one(wishlist_data)
+            wishlist = wishlist_data
+        
+        wishlist.pop("_id", None)
+        
+        # Get product details for wishlist items
+        products = []
+        for item in wishlist.get("items", []):
+            product = products_collection.find_one({"id": item["product_id"], "is_active": True})
+            if product:
+                product.pop("_id", None)
+                # Update rating and review count
+                avg_rating, review_count = calculate_average_rating(product["id"])
+                product["rating"] = avg_rating
+                product["reviews_count"] = review_count
+                products.append(product)
+        
+        return {"wishlist": wishlist, "products": products}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/wishlist/add/{product_id}")
+async def add_to_wishlist(product_id: str, current_user = Depends(get_current_user_required)):
+    try:
+        # Check if product exists
+        product = products_collection.find_one({"id": product_id, "is_active": True})
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Get or create wishlist
+        wishlist = wishlist_collection.find_one({"user_id": current_user["user_id"]})
+        if not wishlist:
+            wishlist_data = Wishlist(user_id=current_user["user_id"]).dict()
+            wishlist_collection.insert_one(wishlist_data)
+            wishlist = wishlist_data
+        
+        # Check if product already in wishlist
+        existing_items = wishlist.get("items", [])
+        if any(item["product_id"] == product_id for item in existing_items):
+            raise HTTPException(status_code=400, detail="Product already in wishlist")
+        
+        # Add to wishlist
+        new_item = WishlistItem(product_id=product_id).dict()
+        existing_items.append(new_item)
+        
+        wishlist_collection.update_one(
+            {"user_id": current_user["user_id"]},
+            {
+                "$set": {
+                    "items": existing_items,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        return {"message": "Product added to wishlist"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/wishlist/remove/{product_id}")
+async def remove_from_wishlist(product_id: str, current_user = Depends(get_current_user_required)):
+    try:
+        wishlist = wishlist_collection.find_one({"user_id": current_user["user_id"]})
+        if not wishlist:
+            raise HTTPException(status_code=404, detail="Wishlist not found")
+        
+        # Remove from wishlist
+        existing_items = wishlist.get("items", [])
+        updated_items = [item for item in existing_items if item["product_id"] != product_id]
+        
+        if len(updated_items) == len(existing_items):
+            raise HTTPException(status_code=404, detail="Product not in wishlist")
+        
+        wishlist_collection.update_one(
+            {"user_id": current_user["user_id"]},
+            {
+                "$set": {
+                    "items": updated_items,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        return {"message": "Product removed from wishlist"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Cart Routes (Enhanced)
+@app.post("/api/cart")
+async def create_cart(current_user = Depends(get_current_user)):
+    try:
+        user_id = current_user["user_id"] if current_user else None
+        session_id = str(uuid.uuid4()) if not user_id else None
+        
+        cart_data = Cart(
+            user_id=user_id,
+            session_id=session_id
+        ).dict()
         
         cart_collection.insert_one(cart_data)
         cart_data.pop("_id", None)
         return cart_data
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/cart/{cart_id}")
-async def get_cart(cart_id: str):
+async def get_cart(cart_id: str, current_user = Depends(get_current_user)):
     try:
         cart = cart_collection.find_one({"id": cart_id})
         if not cart:
             raise HTTPException(status_code=404, detail="Cart not found")
         
+        # Check if user owns the cart
+        if (current_user and cart.get("user_id") != current_user["user_id"]):
+            raise HTTPException(status_code=403, detail="Not authorized to access this cart")
+        
         cart.pop("_id", None)
         return cart
+        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/cart/{cart_id}/items")
-async def add_to_cart(cart_id: str, product_id: str, quantity: int = 1):
+async def add_to_cart(cart_id: str, product_id: str, quantity: int = 1, current_user = Depends(get_current_user)):
     try:
         # Get product
-        product = products_collection.find_one({"id": product_id})
+        product = products_collection.find_one({"id": product_id, "is_active": True})
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
+        
+        # Check inventory
+        if product["inventory"] < quantity:
+            raise HTTPException(status_code=400, detail="Insufficient inventory")
         
         # Get cart
         cart = cart_collection.find_one({"id": cart_id})
         if not cart:
             raise HTTPException(status_code=404, detail="Cart not found")
+        
+        # Check if user owns the cart
+        if (current_user and cart.get("user_id") != current_user["user_id"]):
+            raise HTTPException(status_code=403, detail="Not authorized to access this cart")
         
         # Check if item already exists in cart
         items = cart.get("items", [])
@@ -453,17 +779,22 @@ async def add_to_cart(cart_id: str, product_id: str, quantity: int = 1):
         updated_cart = cart_collection.find_one({"id": cart_id})
         updated_cart.pop("_id", None)
         return updated_cart
+        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/cart/{cart_id}/items/{product_id}")
-async def remove_from_cart(cart_id: str, product_id: str):
+async def remove_from_cart(cart_id: str, product_id: str, current_user = Depends(get_current_user)):
     try:
         cart = cart_collection.find_one({"id": cart_id})
         if not cart:
             raise HTTPException(status_code=404, detail="Cart not found")
+        
+        # Check if user owns the cart
+        if (current_user and cart.get("user_id") != current_user["user_id"]):
+            raise HTTPException(status_code=403, detail="Not authorized to access this cart")
         
         items = [item for item in cart.get("items", []) if item["product_id"] != product_id]
         total = sum(item["quantity"] * item["price"] for item in items)
@@ -482,14 +813,15 @@ async def remove_from_cart(cart_id: str, product_id: str):
         updated_cart = cart_collection.find_one({"id": cart_id})
         updated_cart.pop("_id", None)
         return updated_cart
+        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Checkout and Payment routes
+# Checkout and Payment Routes (Enhanced)
 @app.post("/api/checkout/session")
-async def create_checkout_session(request: CheckoutRequest):
+async def create_checkout_session(request: CheckoutRequest, current_user = Depends(get_current_user)):
     try:
         # Get cart
         cart = cart_collection.find_one({"id": request.cart_id})
@@ -510,6 +842,15 @@ async def create_checkout_session(request: CheckoutRequest):
         
         # Calculate total
         total_amount = cart["total"]
+        discount_amount = 0.0
+        coupon_code = None
+        
+        # Apply coupon if provided
+        if hasattr(request, 'coupon_code') and request.coupon_code:
+            discount_amount, message = apply_coupon(total_amount, request.coupon_code)
+            if discount_amount > 0:
+                coupon_code = request.coupon_code
+                total_amount -= discount_amount
         
         # Create success and cancel URLs
         success_url = f"{request.origin_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
@@ -523,8 +864,10 @@ async def create_checkout_session(request: CheckoutRequest):
             cancel_url=cancel_url,
             metadata={
                 "cart_id": request.cart_id,
-                "user_id": cart.get("user_id") or "guest",
-                "session_id": cart.get("session_id") or "guest"
+                "user_id": current_user["user_id"] if current_user else "guest",
+                "session_id": cart.get("session_id", "guest"),
+                "coupon_code": coupon_code or "",
+                "discount_amount": str(discount_amount)
             }
         )
         
@@ -532,38 +875,56 @@ async def create_checkout_session(request: CheckoutRequest):
         session = await stripe_checkout.create_checkout_session(checkout_request)
         
         # Create order
-        order_data = {
-            "id": str(uuid.uuid4()),
-            "user_id": cart.get("user_id"),
-            "session_id": cart.get("session_id"),
-            "items": cart["items"],
-            "total": total_amount,
-            "status": "pending",
-            "payment_session_id": session.session_id,
-            "created_at": datetime.now(timezone.utc)
-        }
+        order_items = []
+        for item in cart["items"]:
+            product = products_collection.find_one({"id": item["product_id"]})
+            order_items.append({
+                "product_id": item["product_id"],
+                "seller_id": product.get("seller_id"),
+                "quantity": item["quantity"],
+                "price": item["price"],
+                "product_name": product["name"] if product else "Unknown Product"
+            })
+        
+        order_data = Order(
+            user_id=current_user["user_id"] if current_user else None,
+            items=order_items,
+            total_amount=cart["total"],
+            status=OrderStatus.PENDING,
+            payment_session_id=session.session_id,
+            shipping_address=Address(
+                name="Default Address",
+                street="123 Main St",
+                city="City",
+                state="State",
+                postal_code="12345",
+                country="US"
+            )  # This should come from user input in a real app
+        ).dict()
+        
         orders_collection.insert_one(order_data)
         
         # Create payment transaction
-        transaction_data = {
-            "id": str(uuid.uuid4()),
-            "session_id": session.session_id,
-            "amount": total_amount,
-            "currency": "usd",
-            "status": "pending",
-            "payment_status": "unpaid",
-            "user_id": cart.get("user_id"),
-            "order_id": order_data["id"],
-            "metadata": checkout_request.metadata,
-            "created_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc)
-        }
+        transaction_data = PaymentTransaction(
+            session_id=session.session_id,
+            order_id=order_data["id"],
+            user_id=current_user["user_id"] if current_user else None,
+            amount=total_amount,
+            coupon_code=coupon_code,
+            discount_amount=discount_amount,
+            metadata=checkout_request.metadata
+        ).dict()
+        
         payment_transactions_collection.insert_one(transaction_data)
         
         return {
             "url": session.url,
-            "session_id": session.session_id
+            "session_id": session.session_id,
+            "total_amount": total_amount,
+            "discount_amount": discount_amount,
+            "original_amount": cart["total"]
         }
+        
     except HTTPException:
         raise
     except Exception as e:
@@ -596,8 +957,15 @@ async def get_checkout_status(session_id: str):
             if checkout_status.payment_status == "paid" and transaction.get("order_id"):
                 orders_collection.update_one(
                     {"id": transaction["order_id"]},
-                    {"$set": {"status": "paid"}}
+                    {"$set": {"status": "processing"}}
                 )
+                
+                # Update coupon usage count
+                if transaction.get("coupon_code"):
+                    coupons_collection.update_one(
+                        {"code": transaction["coupon_code"]},
+                        {"$inc": {"used_count": 1}}
+                    )
         
         return {
             "status": checkout_status.status,
@@ -605,6 +973,7 @@ async def get_checkout_status(session_id: str):
             "amount_total": checkout_status.amount_total,
             "currency": checkout_status.currency
         }
+        
     except HTTPException:
         raise
     except Exception as e:
@@ -634,24 +1003,85 @@ async def stripe_webhook(request: Request):
             )
         
         return {"status": "success"}
+        
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# Orders routes
+# Order Routes (Enhanced)
 @app.get("/api/orders")
-async def get_orders(user_id: Optional[str] = Query(None), session_id: Optional[str] = Query(None)):
+async def get_user_orders(current_user = Depends(get_current_user_required)):
     try:
-        filter_query = {}
-        if user_id:
-            filter_query["user_id"] = user_id
-        elif session_id:
-            filter_query["session_id"] = session_id
-        
-        orders = list(orders_collection.find(filter_query).sort("created_at", -1))
+        orders = list(orders_collection.find({"user_id": current_user["user_id"]}).sort("created_at", -1))
         for order in orders:
             order.pop("_id", None)
         
         return {"orders": orders}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/orders/{order_id}")
+async def get_order_details(order_id: str, current_user = Depends(get_current_user_required)):
+    try:
+        order = orders_collection.find_one({"id": order_id})
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        # Check if user owns the order or is admin
+        if (order.get("user_id") != current_user["user_id"] and 
+            current_user.get("role") != "admin"):
+            raise HTTPException(status_code=403, detail="Not authorized to view this order")
+        
+        order.pop("_id", None)
+        return order
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin Routes
+@app.get("/api/admin/users")
+async def get_all_users(current_user = Depends(get_admin_user), skip: int = 0, limit: int = 50):
+    try:
+        users = list(users_collection.find().skip(skip).limit(limit).sort("created_at", -1))
+        for user in users:
+            user.pop("hashed_password", None)
+            user.pop("_id", None)
+        
+        return {"users": users}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/orders")
+async def get_all_orders(current_user = Depends(get_admin_user), skip: int = 0, limit: int = 50):
+    try:
+        orders = list(orders_collection.find().skip(skip).limit(limit).sort("created_at", -1))
+        for order in orders:
+            order.pop("_id", None)
+        
+        return {"orders": orders}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/orders/{order_id}/status")
+async def update_order_status(order_id: str, status: OrderStatus, current_user = Depends(get_admin_user)):
+    try:
+        order = orders_collection.find_one({"id": order_id})
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        orders_collection.update_one(
+            {"id": order_id},
+            {"$set": {"status": status.value, "updated_at": datetime.now(timezone.utc)}}
+        )
+        
+        return {"message": "Order status updated successfully"}
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -659,28 +1089,31 @@ async def get_orders(user_id: Optional[str] = Query(None), session_id: Optional[
 @app.get("/api/categories")
 async def get_categories():
     try:
-        categories = products_collection.distinct("category")
+        categories = products_collection.distinct("category", {"is_active": True})
         return {"categories": categories}
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/brands")
 async def get_brands():
     try:
-        brands = products_collection.distinct("brand")
+        brands = products_collection.distinct("brand", {"is_active": True})
         return {"brands": brands}
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 # Analytics
 @app.get("/api/analytics/search")
-async def get_search_analytics():
+async def get_search_analytics(current_user = Depends(get_admin_user)):
     try:
         recent_searches = list(search_collection.find().sort("timestamp", -1).limit(10))
         for search in recent_searches:
             search.pop("_id", None)
         
         return {"recent_searches": recent_searches}
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
