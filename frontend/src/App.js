@@ -662,10 +662,13 @@ const Header = () => {
 };
 
 // Enhanced Product Card Component
-const ProductCard = ({ product, onAddToCart, isWishlisted, onToggleWishlist }) => {
+const ProductCard = ({ product, onAddToCart, wishlist, onToggleWishlist }) => {
   const [imageError, setImageError] = useState(false);
   const navigate = useNavigate();
   const { user } = useAppContext();
+
+  // Calculate isWishlisted inside the component so it updates when wishlist changes
+  const isWishlisted = wishlist ? wishlist.some(item => item.id === product.id) : false;
 
   const handleWishlistToggle = (e) => {
     e.stopPropagation();
