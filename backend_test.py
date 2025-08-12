@@ -227,7 +227,170 @@ class EcommerceAPITester:
 
     def test_get_orders(self):
         """Test getting orders"""
-        return self.run_test("Get Orders", "GET", "/api/orders", 200)
+        return self.run_test("Get Orders", "GET", "/api/orders", 200, auth_required=True)
+
+    def test_user_login(self):
+        """Test user authentication with testuser@example.com"""
+        login_data = {
+            "email": "testuser@example.com",
+            "password": "password123"
+        }
+        
+        success, response = self.run_test(
+            "User Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            data=login_data
+        )
+        
+        if success and 'access_token' in response:
+            self.access_token = response['access_token']
+            print(f"   Login successful - Token obtained")
+            
+            # Get user info to get user_id
+            user_success, user_response = self.run_test(
+                "Get Current User Info",
+                "GET",
+                "/api/auth/me",
+                200,
+                auth_required=True
+            )
+            
+            if user_success and 'id' in user_response:
+                self.user_id = user_response['id']
+                print(f"   User ID: {self.user_id}")
+        
+        return success
+
+    def test_get_wishlist(self):
+        """Test getting user's wishlist"""
+        if not self.access_token:
+            print("⚠️  Skipping wishlist test - not authenticated")
+            return False
+            
+        return self.run_test(
+            "Get User Wishlist",
+            "GET",
+            "/api/wishlist",
+            200,
+            auth_required=True
+        )
+
+    def test_add_to_wishlist(self):
+        """Test adding product to wishlist"""
+        if not self.access_token or not self.product_id:
+            print("⚠️  Skipping add to wishlist test - missing auth or product ID")
+            return False
+            
+        return self.run_test(
+            "Add Product to Wishlist",
+            "POST",
+            f"/api/wishlist/add/{self.product_id}",
+            200,
+            auth_required=True
+        )
+
+    def test_remove_from_wishlist(self):
+        """Test removing product from wishlist"""
+        if not self.access_token or not self.product_id:
+            print("⚠️  Skipping remove from wishlist test - missing auth or product ID")
+            return False
+            
+        return self.run_test(
+            "Remove Product from Wishlist",
+            "DELETE",
+            f"/api/wishlist/remove/{self.product_id}",
+            200,
+            auth_required=True
+        )
+
+    def test_wishlist_flow(self):
+        """Test complete wishlist flow: add -> verify -> remove -> verify"""
+        print("\n🔄 Testing Complete Wishlist Flow...")
+        
+        if not self.access_token or not self.product_id:
+            print("⚠️  Skipping wishlist flow test - missing auth or product ID")
+            return False
+        
+        # Step 1: Get initial wishlist
+        success1, initial_wishlist = self.run_test(
+            "Get Initial Wishlist",
+            "GET",
+            "/api/wishlist",
+            200,
+            auth_required=True
+        )
+        
+        initial_count = len(initial_wishlist.get('wishlist', {}).get('items', [])) if success1 else 0
+        print(f"   Initial wishlist items: {initial_count}")
+        
+        # Step 2: Add product to wishlist
+        success2, add_response = self.run_test(
+            "Add to Wishlist (Flow)",
+            "POST",
+            f"/api/wishlist/add/{self.product_id}",
+            200,
+            auth_required=True
+        )
+        
+        # Step 3: Verify product was added
+        success3, updated_wishlist = self.run_test(
+            "Verify Product Added",
+            "GET",
+            "/api/wishlist",
+            200,
+            auth_required=True
+        )
+        
+        added_count = len(updated_wishlist.get('wishlist', {}).get('items', [])) if success3 else 0
+        print(f"   Wishlist items after add: {added_count}")
+        
+        # Check if product is in wishlist
+        product_in_wishlist = False
+        if success3 and 'wishlist' in updated_wishlist:
+            items = updated_wishlist['wishlist'].get('items', [])
+            product_in_wishlist = any(item.get('product_id') == self.product_id for item in items)
+            print(f"   Product {self.product_id} in wishlist: {product_in_wishlist}")
+        
+        # Step 4: Remove product from wishlist
+        success4, remove_response = self.run_test(
+            "Remove from Wishlist (Flow)",
+            "DELETE",
+            f"/api/wishlist/remove/{self.product_id}",
+            200,
+            auth_required=True
+        )
+        
+        # Step 5: Verify product was removed
+        success5, final_wishlist = self.run_test(
+            "Verify Product Removed",
+            "GET",
+            "/api/wishlist",
+            200,
+            auth_required=True
+        )
+        
+        final_count = len(final_wishlist.get('wishlist', {}).get('items', [])) if success5 else 0
+        print(f"   Final wishlist items: {final_count}")
+        
+        # Check if product is no longer in wishlist
+        product_removed = True
+        if success5 and 'wishlist' in final_wishlist:
+            items = final_wishlist['wishlist'].get('items', [])
+            product_removed = not any(item.get('product_id') == self.product_id for item in items)
+            print(f"   Product {self.product_id} removed from wishlist: {product_removed}")
+        
+        # Overall success
+        flow_success = all([success1, success2, success3, success4, success5, product_in_wishlist, product_removed])
+        
+        if flow_success:
+            print("✅ Complete wishlist flow test passed!")
+            self.tests_passed += 1
+        else:
+            print("❌ Wishlist flow test failed!")
+        
+        return flow_success
 
 def main():
     print("🚀 Starting E-commerce API Tests")
