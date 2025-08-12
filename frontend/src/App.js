@@ -223,17 +223,13 @@ const AppProvider = ({ children }) => {
     
     try {
       setLoading(true);
-      console.log('Adding to cart - Before:', { cartId: cart.id, currentItems: cart.items?.length || 0 });
       const response = await api.post(`/api/cart/${cart.id}/items`, null, {
         params: { product_id: productId, quantity }
       });
-      console.log('Add to cart API response:', response.data);
-      console.log('Items in response:', response.data.items?.length || 0);
       
       // Force a new object to ensure React re-renders
       const updatedCart = { ...response.data };
       setCart(updatedCart);
-      console.log('Cart state updated with new object:', updatedCart);
     } catch (error) {
       console.error('Error adding to cart:', error);
     } finally {
