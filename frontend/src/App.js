@@ -1591,7 +1591,7 @@ const SearchPage = () => {
                     key={product.id}
                     product={product}
                     onAddToCart={addToCart}
-                    isWishlisted={isWishlisted(product.id)}
+                    wishlist={wishlist}
                     onToggleWishlist={handleWishlistToggle}
                   />
                 ))}
