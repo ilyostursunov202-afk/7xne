@@ -538,10 +538,19 @@ const AdminPanel = () => {
                           </td>
                           <td className="border border-gray-300 px-4 py-3">
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditProduct(product)}
+                              >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="text-red-600">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-red-600"
+                                onClick={() => handleDeleteProduct(product.id)}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
