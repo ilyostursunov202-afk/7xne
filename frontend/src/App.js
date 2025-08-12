@@ -1665,6 +1665,7 @@ export default function App() {
               <Route path="/product/:id" element={<ProductDetailPageWrapper />} />
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/orders" element={<OrderHistoryPage />} />
+              <Route path="/admin" element={<AdminPanelWrapper />} />
               {/* Add other routes */}
             </Routes>
           </main>
