@@ -766,8 +766,6 @@ const ProductCard = ({ product, onAddToCart, isWishlisted, onToggleWishlist }) =
           <Button
             onClick={(e) => {
               e.stopPropagation();
-              console.log('ProductCard Add button clicked for product:', product.id);
-              console.log('onAddToCart function:', onAddToCart);
               onAddToCart(product.id);
             }}
             disabled={product.inventory === 0}
