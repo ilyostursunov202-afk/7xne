@@ -192,8 +192,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Cart/Basket Page routing and integration"
-    - "Product Detail Page routing and missing Reviews component"
+    - "PWA Implementation"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
