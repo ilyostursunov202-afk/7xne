@@ -725,7 +725,8 @@ const SearchPage = () => {
 
 // Product Detail Page Component
 const ProductDetailPage = () => {
-  const { id } = useLocation().pathname.split('/').pop();
+  const location = useLocation();
+  const id = location.pathname.split('/').pop();
   const [product, setProduct] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
