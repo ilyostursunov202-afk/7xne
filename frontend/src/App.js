@@ -1610,8 +1610,26 @@ const CartPageWrapper = () => {
   return <CartPage cart={cart} updateCartQuantity={updateCartQuantity} removeFromCart={removeFromCart} />;
 };
 
-// Product detail page wrapper  
-const ProductDetailPageWrapper = () => {
+// Admin panel wrapper
+const AdminPanelWrapper = () => {
+  const { user } = useAppContext();
+  
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-4">You need admin privileges to access this page.</p>
+          <Button onClick={() => window.history.back()}>
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  return <AdminPanel />;
+};
   const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
   
   const handleWishlistToggle = (productId) => {
