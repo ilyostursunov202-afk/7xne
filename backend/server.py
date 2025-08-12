@@ -1682,6 +1682,243 @@ async def subscribe_to_push(subscription_data: Dict, current_user = Depends(get_
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Admin Seller Management Routes
+@app.get("/api/admin/sellers")
+async def get_all_sellers(current_user = Depends(get_admin_user), status: Optional[str] = None, skip: int = 0, limit: int = 50):
+    try:
+        filter_query = {}
+        if status:
+            filter_query["status"] = status
+        
+        sellers = list(seller_profiles_collection.find(filter_query).skip(skip).limit(limit).sort("created_at", -1))
+        
+        # Add user information to each seller
+        for seller in sellers:
+            seller.pop("_id", None)
+            user = users_collection.find_one({"id": seller["user_id"]})
+            if user:
+                seller["user_name"] = user["name"]
+                seller["user_email"] = user["email"]
+        
+        return {"sellers": sellers}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/sellers/{seller_id}/status")
+async def update_seller_status(seller_id: str, status: str, current_user = Depends(get_admin_user)):
+    try:
+        if status not in ["approved", "rejected", "suspended"]:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        
+        seller_profile = seller_profiles_collection.find_one({"user_id": seller_id})
+        if not seller_profile:
+            raise HTTPException(status_code=404, detail="Seller not found")
+        
+        # Update seller status
+        seller_profiles_collection.update_one(
+            {"user_id": seller_id},
+            {
+                "$set": {
+                    "status": status,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        # Send notification to seller
+        title = "Seller Application Update"
+        if status == "approved":
+            message = "Congratulations! Your seller application has been approved. You can now start selling on our platform."
+        elif status == "rejected":
+            message = "Unfortunately, your seller application has been rejected. Please contact support for more information."
+        else:  # suspended
+            message = "Your seller account has been suspended. Please contact support immediately."
+        
+        await send_notification(
+            seller_id,
+            "seller_application",
+            title,
+            message,
+            {"status": status},
+            ["email", "in_app"]
+        )
+        
+        return {"message": f"Seller status updated to {status}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/sellers/{seller_id}/commission")
+async def update_seller_commission(seller_id: str, commission_rate: float, current_user = Depends(get_admin_user)):
+    try:
+        if commission_rate < 0 or commission_rate > 100:
+            raise HTTPException(status_code=400, detail="Commission rate must be between 0 and 100")
+        
+        result = seller_profiles_collection.update_one(
+            {"user_id": seller_id},
+            {
+                "$set": {
+                    "commission_rate": commission_rate,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Seller not found")
+        
+        return {"message": f"Commission rate updated to {commission_rate}%"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Enhanced checkout with coupon and commission handling
+@app.post("/api/checkout/session")
+async def create_checkout_session(request: CheckoutRequest, current_user = Depends(get_current_user)):
+    try:
+        # Get cart
+        cart = cart_collection.find_one({"id": request.cart_id})
+        if not cart:
+            raise HTTPException(status_code=404, detail="Cart not found")
+        
+        if not cart.get("items"):
+            raise HTTPException(status_code=400, detail="Cart is empty")
+        
+        # Initialize Stripe checkout
+        global stripe_checkout
+        if not stripe_checkout and STRIPE_API_KEY:
+            webhook_url = f"{request.origin_url}/api/webhook/stripe"
+            stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        
+        if not stripe_checkout:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
+        
+        # Calculate total
+        total_amount = cart["total"]
+        discount_amount = 0.0
+        coupon_code = None
+        
+        # Apply coupon if provided
+        if hasattr(request, 'coupon_code') and request.coupon_code:
+            discount_amount, message = apply_coupon(
+                total_amount, 
+                request.coupon_code,
+                current_user["user_id"] if current_user else None,
+                cart.get("items", [])
+            )
+            if discount_amount > 0:
+                coupon_code = request.coupon_code
+                total_amount -= discount_amount
+            else:
+                raise HTTPException(status_code=400, detail=message)
+        
+        # Create success and cancel URLs
+        success_url = f"{request.origin_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{request.origin_url}/checkout/cancel"
+        
+        # Create checkout session request
+        checkout_request = CheckoutSessionRequest(
+            amount=total_amount,
+            currency="usd",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "cart_id": request.cart_id,
+                "user_id": current_user["user_id"] if current_user else "guest",
+                "session_id": cart.get("session_id", "guest"),
+                "coupon_code": coupon_code or "",
+                "discount_amount": str(discount_amount)
+            }
+        )
+        
+        # Create Stripe session
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create order with seller information and commission calculation
+        order_items = []
+        total_commission = 0.0
+        
+        for item in cart["items"]:
+            product = products_collection.find_one({"id": item["product_id"]})
+            if not product:
+                continue
+                
+            seller_id = product.get("seller_id")
+            item_total = item["quantity"] * item["price"]
+            
+            # Calculate commission for this item
+            if seller_id:
+                commission_rate, commission_amount = calculate_commission(
+                    item_total, 
+                    seller_id, 
+                    product.get("category")
+                )
+                total_commission += commission_amount
+            
+            order_items.append({
+                "product_id": item["product_id"],
+                "seller_id": seller_id,
+                "quantity": item["quantity"],
+                "price": item["price"],
+                "product_name": product["name"],
+                "commission_rate": commission_rate if seller_id else 0.0,
+                "commission_amount": commission_amount if seller_id else 0.0
+            })
+        
+        order_data = Order(
+            user_id=current_user["user_id"] if current_user else None,
+            items=order_items,
+            total_amount=cart["total"],
+            status=OrderStatus.PENDING,
+            payment_session_id=session.session_id,
+            shipping_address=Address(
+                name="Default Address",
+                street="123 Main St",
+                city="City",
+                state="State",
+                postal_code="12345",
+                country="US"
+            )  # This should come from user input in a real app
+        ).dict()
+        
+        # Add commission info to order
+        order_data["total_commission"] = total_commission
+        order_data["discount_amount"] = discount_amount
+        order_data["coupon_code"] = coupon_code
+        
+        orders_collection.insert_one(order_data)
+        
+        # Create payment transaction
+        transaction_data = PaymentTransaction(
+            session_id=session.session_id,
+            order_id=order_data["id"],
+            user_id=current_user["user_id"] if current_user else None,
+            amount=total_amount,
+            coupon_code=coupon_code,
+            discount_amount=discount_amount,
+            metadata=checkout_request.metadata
+        ).dict()
+        
+        payment_transactions_collection.insert_one(transaction_data)
+        
+        return {
+            "url": session.url,
+            "session_id": session.session_id,
+            "total_amount": total_amount,
+            "discount_amount": discount_amount,
+            "original_amount": cart["total"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
