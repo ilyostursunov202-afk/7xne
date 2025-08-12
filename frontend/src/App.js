@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext, useMemo } from 'react';
+import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Search, ShoppingCart, Filter, Star, Heart, User, Menu, Plus, Minus, CreditCard, Truck, Shield, ArrowRight, Grid, List, SortAsc, X, UserCheck, LogOut, Settings, Package, MessageCircle, Trash2, Edit } from 'lucide-react';
