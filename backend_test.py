@@ -16,7 +16,7 @@ class EcommerceAPITester:
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, params=None, auth_required=False):
         """Run a single API test"""
         url = f"{self.base_url}{endpoint}"
         
@@ -24,15 +24,20 @@ class EcommerceAPITester:
         print(f"\n🔍 Testing {name}...")
         print(f"   URL: {method} {url}")
         
+        # Set authorization header if auth is required and we have a token
+        headers = {}
+        if auth_required and self.access_token:
+            headers['Authorization'] = f'Bearer {self.access_token}'
+        
         try:
             if method == 'GET':
-                response = self.session.get(url, params=params)
+                response = self.session.get(url, params=params, headers=headers)
             elif method == 'POST':
-                response = self.session.post(url, json=data, params=params)
+                response = self.session.post(url, json=data, params=params, headers=headers)
             elif method == 'DELETE':
-                response = self.session.delete(url)
+                response = self.session.delete(url, headers=headers)
             elif method == 'PUT':
-                response = self.session.put(url, json=data)
+                response = self.session.put(url, json=data, headers=headers)
 
             success = response.status_code == expected_status
             if success:
