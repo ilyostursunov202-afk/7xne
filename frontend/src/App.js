@@ -1607,6 +1607,7 @@ const SearchPage = () => {
 // Cart page component wrapper
 const CartPageWrapper = () => {
   const { cart, updateCartQuantity, removeFromCart } = useAppContext();
+  console.log('CartPageWrapper - cart data:', cart);
   return <CartPage cart={cart} updateCartQuantity={updateCartQuantity} removeFromCart={removeFromCart} />;
 };
 
