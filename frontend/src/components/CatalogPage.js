@@ -244,7 +244,7 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
                     >
                       All Brands
                     </div>
-                    {brands.map((brand) => (
+                    {Array.isArray(brands) && brands.map((brand) => (
                       <div
                         key={brand}
                         className={`p-2 rounded cursor-pointer transition-colors ${
