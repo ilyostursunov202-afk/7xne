@@ -14,9 +14,9 @@ from pymongo import MongoClient
 import hashlib
 
 # Initialize database collections
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/marketplace_db')
+MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 client = MongoClient(MONGO_URL)
-db = client.marketplace_db
+db = client["ecommerce"]
 verification_codes_collection = db['verification_codes']
 
 class VerificationService:
