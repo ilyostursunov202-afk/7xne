@@ -58,11 +58,20 @@ const AdminPanel = () => {
   const [coupons, setCoupons] = useState([]);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [statistics, setStatistics] = useState(null);
+  const [actionLogs, setActionLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
+  
+  // User management states
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userStatusFilter, setUserStatusFilter] = useState('all');
+  const [usersLoading, setUsersLoading] = useState(false);
   
   const [couponForm, setCouponForm] = useState({
     code: '',
