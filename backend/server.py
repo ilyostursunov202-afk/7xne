@@ -1809,6 +1809,455 @@ async def create_checkout_session(request: CheckoutRequest, current_user = Depen
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Enhanced User Management for Admin Panel
+@app.get("/api/admin/users/search")
+async def search_users(
+    current_user = Depends(get_admin_user),
+    q: Optional[str] = None,
+    role: Optional[str] = None,
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50
+):
+    """Search and filter users with enhanced criteria"""
+    try:
+        query = {}
+        
+        # Add search filters
+        if q:
+            query["$or"] = [
+                {"name": {"$regex": q, "$options": "i"}},
+                {"email": {"$regex": q, "$options": "i"}}
+            ]
+        
+        if role and role != "all":
+            query["role"] = role
+            
+        if status and status != "all":
+            query["is_active"] = (status == "active")
+        
+        # Get total count
+        total_users = users_collection.count_documents(query)
+        
+        # Get users with pagination
+        users = list(users_collection.find(query).skip(skip).limit(limit).sort("created_at", -1))
+        for user in users:
+            user.pop("hashed_password", None)
+            user.pop("_id", None)
+        
+        return {
+            "users": users,
+            "total": total_users,
+            "page": skip // limit + 1,
+            "pages": (total_users + limit - 1) // limit
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/users/{user_id}/status")
+async def update_user_status(user_id: str, is_active: bool, current_user = Depends(get_admin_user)):
+    """Block/unblock user"""
+    try:
+        user = users_collection.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Don't allow admin to block themselves
+        if user_id == current_user["user_id"]:
+            raise HTTPException(status_code=400, detail="Cannot change your own status")
+        
+        users_collection.update_one(
+            {"id": user_id},
+            {
+                "$set": {
+                    "is_active": is_active,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        # Log admin action
+        await log_admin_action(
+            current_user["user_id"],
+            "user_status_update",
+            f"{'Activated' if is_active else 'Blocked'} user {user['email']}",
+            {"user_id": user_id, "is_active": is_active}
+        )
+        
+        return {"message": f"User {'activated' if is_active else 'blocked'} successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/users/{user_id}/role")
+async def update_user_role(user_id: str, role: UserRole, current_user = Depends(get_admin_user)):
+    """Change user role"""
+    try:
+        user = users_collection.find_one({"id": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Don't allow admin to change their own role
+        if user_id == current_user["user_id"]:
+            raise HTTPException(status_code=400, detail="Cannot change your own role")
+        
+        old_role = user.get("role", "customer")
+        
+        users_collection.update_one(
+            {"id": user_id},
+            {
+                "$set": {
+                    "role": role.value,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        # Log admin action
+        await log_admin_action(
+            current_user["user_id"],
+            "user_role_update",
+            f"Changed user {user['email']} role from {old_role} to {role.value}",
+            {"user_id": user_id, "old_role": old_role, "new_role": role.value}
+        )
+        
+        return {"message": f"User role updated to {role.value}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Admin Statistics and Analytics
+@app.get("/api/admin/statistics")
+async def get_admin_statistics(current_user = Depends(get_admin_user)):
+    """Get comprehensive admin statistics"""
+    try:
+        # User statistics
+        total_users = users_collection.count_documents({})
+        active_users = users_collection.count_documents({"is_active": True})
+        new_users_today = users_collection.count_documents({
+            "created_at": {"$gte": datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)}
+        })
+        new_users_week = users_collection.count_documents({
+            "created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=7)}
+        })
+        
+        # Order statistics
+        total_orders = orders_collection.count_documents({})
+        orders_today = orders_collection.count_documents({
+            "created_at": {"$gte": datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)}
+        })
+        orders_week = orders_collection.count_documents({
+            "created_at": {"$gte": datetime.now(timezone.utc) - timedelta(days=7)}
+        })
+        
+        # Revenue statistics
+        revenue_pipeline = [
+            {
+                "$match": {
+                    "status": {"$in": ["processing", "shipped", "delivered"]},
+                    "total_amount": {"$exists": True}
+                }
+            },
+            {
+                "$group": {
+                    "_id": None,
+                    "total_revenue": {"$sum": "$total_amount"},
+                    "avg_order_value": {"$avg": "$total_amount"}
+                }
+            }
+        ]
+        revenue_result = list(orders_collection.aggregate(revenue_pipeline))
+        total_revenue = revenue_result[0]["total_revenue"] if revenue_result else 0
+        avg_order_value = revenue_result[0]["avg_order_value"] if revenue_result else 0
+        
+        # Product statistics
+        total_products = products_collection.count_documents({"is_active": True})
+        low_stock_products = products_collection.count_documents({"inventory": {"$lt": 10}, "is_active": True})
+        
+        # Top selling products
+        top_products_pipeline = [
+            {"$unwind": "$items"},
+            {
+                "$group": {
+                    "_id": "$items.product_id",
+                    "total_sold": {"$sum": "$items.quantity"},
+                    "revenue": {"$sum": {"$multiply": ["$items.quantity", "$items.price"]}}
+                }
+            },
+            {"$sort": {"total_sold": -1}},
+            {"$limit": 5}
+        ]
+        top_products_data = list(orders_collection.aggregate(top_products_pipeline))
+        
+        # Get product details for top selling
+        top_products = []
+        for item in top_products_data:
+            product = products_collection.find_one({"id": item["_id"]})
+            if product:
+                top_products.append({
+                    "product_id": item["_id"],
+                    "name": product["name"],
+                    "total_sold": item["total_sold"],
+                    "revenue": item["revenue"]
+                })
+        
+        # Recent orders
+        recent_orders = list(orders_collection.find({}).sort("created_at", -1).limit(5))
+        for order in recent_orders:
+            order.pop("_id", None)
+        
+        # Website traffic (simplified - you'd typically get this from analytics)
+        visits_today = search_collection.count_documents({
+            "timestamp": {"$gte": datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)}
+        })
+        
+        return {
+            "user_stats": {
+                "total_users": total_users,
+                "active_users": active_users,
+                "new_users_today": new_users_today,
+                "new_users_week": new_users_week
+            },
+            "order_stats": {
+                "total_orders": total_orders,
+                "orders_today": orders_today,
+                "orders_week": orders_week,
+                "total_revenue": round(total_revenue, 2),
+                "avg_order_value": round(avg_order_value, 2)
+            },
+            "product_stats": {
+                "total_products": total_products,
+                "low_stock_products": low_stock_products
+            },
+            "top_products": top_products,
+            "recent_orders": recent_orders,
+            "website_stats": {
+                "visits_today": visits_today
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Action Logging System
+action_logs_collection = db["action_logs"]
+
+async def log_admin_action(admin_id: str, action_type: str, description: str, metadata: Dict = None):
+    """Log admin actions for audit trail"""
+    try:
+        log_entry = {
+            "id": str(uuid.uuid4()),
+            "admin_id": admin_id,
+            "action_type": action_type,
+            "description": description,
+            "metadata": metadata or {},
+            "timestamp": datetime.now(timezone.utc),
+            "ip_address": None  # Would be extracted from request in real implementation
+        }
+        action_logs_collection.insert_one(log_entry)
+    except Exception as e:
+        print(f"Failed to log admin action: {e}")
+
+@app.get("/api/admin/action-logs")
+async def get_action_logs(
+    current_user = Depends(get_admin_user),
+    action_type: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50
+):
+    """Get admin action logs"""
+    try:
+        query = {}
+        if action_type and action_type != "all":
+            query["action_type"] = action_type
+        
+        total_logs = action_logs_collection.count_documents(query)
+        logs = list(action_logs_collection.find(query).skip(skip).limit(limit).sort("timestamp", -1))
+        
+        # Get admin names
+        for log in logs:
+            log.pop("_id", None)
+            admin = users_collection.find_one({"id": log["admin_id"]})
+            log["admin_name"] = admin["name"] if admin else "Unknown Admin"
+        
+        return {
+            "logs": logs,
+            "total": total_logs,
+            "page": skip // limit + 1,
+            "pages": (total_logs + limit - 1) // limit
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Enhanced Profile Management
+@app.get("/api/profile")
+async def get_user_profile(current_user = Depends(get_current_user_required)):
+    """Get current user profile"""
+    try:
+        user = users_collection.find_one({"id": current_user["user_id"]})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user.pop("hashed_password", None)
+        user.pop("_id", None)
+        
+        return user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/profile")
+async def update_user_profile(profile_data: UserUpdate, current_user = Depends(get_current_user_required)):
+    """Update user profile"""
+    try:
+        update_data = {}
+        if profile_data.name:
+            update_data["name"] = profile_data.name
+        if profile_data.phone:
+            update_data["phone"] = profile_data.phone
+        if profile_data.avatar:
+            update_data["avatar"] = profile_data.avatar
+        
+        if update_data:
+            update_data["updated_at"] = datetime.now(timezone.utc)
+            users_collection.update_one(
+                {"id": current_user["user_id"]},
+                {"$set": update_data}
+            )
+        
+        # Get updated user
+        updated_user = users_collection.find_one({"id": current_user["user_id"]})
+        updated_user.pop("hashed_password", None)
+        updated_user.pop("_id", None)
+        
+        return updated_user
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/profile/password")
+async def change_password(old_password: str, new_password: str, current_user = Depends(get_current_user_required)):
+    """Change user password"""
+    try:
+        user = users_collection.find_one({"id": current_user["user_id"]})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Verify old password
+        if not auth_manager.verify_password(old_password, user["hashed_password"]):
+            raise HTTPException(status_code=400, detail="Invalid current password")
+        
+        # Hash new password
+        new_hashed_password = auth_manager.get_password_hash(new_password)
+        
+        # Update password
+        users_collection.update_one(
+            {"id": current_user["user_id"]},
+            {
+                "$set": {
+                    "hashed_password": new_hashed_password,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        return {"message": "Password updated successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# File upload handling (simplified - in production, use cloud storage)
+from fastapi import UploadFile, File
+import os
+import shutil
+
+@app.post("/api/profile/avatar")
+async def upload_avatar(file: UploadFile = File(...), current_user = Depends(get_current_user_required)):
+    """Upload user avatar"""
+    try:
+        if not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Create upload directory
+        upload_dir = "/app/uploads/avatars"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Generate unique filename
+        file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+        filename = f"{current_user['user_id']}.{file_extension}"
+        file_path = os.path.join(upload_dir, filename)
+        
+        # Save file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Update user avatar
+        avatar_url = f"/api/uploads/avatars/{filename}"
+        users_collection.update_one(
+            {"id": current_user["user_id"]},
+            {
+                "$set": {
+                    "avatar": avatar_url,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        return {"avatar_url": avatar_url}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Serve uploaded files
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+@app.get("/api/uploads/avatars/{filename}")
+async def get_avatar(filename: str):
+    """Serve avatar files"""
+    file_path = f"/app/uploads/avatars/{filename}"
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    else:
+        raise HTTPException(status_code=404, detail="File not found")
+
+# User language preference
+@app.put("/api/profile/language")
+async def update_language_preference(language: str, current_user = Depends(get_current_user_required)):
+    """Update user language preference"""
+    try:
+        if language not in ["en", "ru"]:
+            raise HTTPException(status_code=400, detail="Unsupported language")
+        
+        users_collection.update_one(
+            {"id": current_user["user_id"]},
+            {
+                "$set": {
+                    "language": language,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        return {"message": "Language preference updated", "language": language}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
