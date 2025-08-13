@@ -704,6 +704,392 @@ class EcommerceAPITester:
         
         return success
 
+    # ENHANCED REGISTRATION AND VERIFICATION TESTS
+    def test_send_email_verification(self):
+        """Test sending email verification code"""
+        email_data = {
+            "email": "test.verification@example.com"
+        }
+        
+        success, response = self.run_test(
+            "Send Email Verification",
+            "POST",
+            "/api/auth/send-email-verification",
+            200,
+            data=email_data
+        )
+        
+        if success and 'dev_code' in response:
+            # Store the verification code for later use
+            self.email_verification_code = response['dev_code']
+            print(f"   Email verification code: {self.email_verification_code}")
+        
+        return success
+
+    def test_verify_email_code(self):
+        """Test verifying email with code"""
+        if not hasattr(self, 'email_verification_code'):
+            print("⚠️  Skipping email verification test - no verification code available")
+            return False
+        
+        verify_data = {
+            "email": "test.verification@example.com",
+            "code": self.email_verification_code
+        }
+        
+        return self.run_test(
+            "Verify Email Code",
+            "POST",
+            "/api/auth/verify-email",
+            200,
+            data=verify_data
+        )[0]
+
+    def test_send_phone_verification(self):
+        """Test sending phone verification code (mock mode)"""
+        phone_data = {
+            "phone": "+1234567890"
+        }
+        
+        success, response = self.run_test(
+            "Send Phone Verification",
+            "POST",
+            "/api/auth/send-phone-verification",
+            200,
+            data=phone_data
+        )
+        
+        if success and 'dev_code' in response:
+            # Store the verification code for later use
+            self.phone_verification_code = response['dev_code']
+            print(f"   Phone verification code: {self.phone_verification_code}")
+        
+        return success
+
+    def test_verify_phone_code(self):
+        """Test verifying phone with code"""
+        if not hasattr(self, 'phone_verification_code'):
+            print("⚠️  Skipping phone verification test - no verification code available")
+            return False
+        
+        verify_data = {
+            "phone": "+1234567890",
+            "code": self.phone_verification_code
+        }
+        
+        return self.run_test(
+            "Verify Phone Code",
+            "POST",
+            "/api/auth/verify-phone",
+            200,
+            data=verify_data
+        )[0]
+
+    def test_enhanced_registration(self):
+        """Test enhanced user registration with email, phone, and shipping address"""
+        timestamp = str(int(time.time()))
+        
+        registration_data = {
+            "email": f"enhanced.user.{timestamp}@example.com",
+            "password": "SecurePassword123!",
+            "name": "Enhanced Test User",
+            "phone": f"+1555{timestamp[-6:]}",
+            "role": "customer",
+            "shipping_address": {
+                "full_name": "Enhanced Test User",
+                "address_line_1": "123 Test Street",
+                "address_line_2": "Apt 4B",
+                "city": "Test City",
+                "state": "CA",
+                "postal_code": "90210",
+                "country": "US",
+                "phone": f"+1555{timestamp[-6:]}",
+                "is_default": True
+            }
+        }
+        
+        success, response = self.run_test(
+            "Enhanced Registration",
+            "POST",
+            "/api/auth/register-enhanced",
+            200,
+            data=registration_data
+        )
+        
+        if success:
+            # Store user data for other tests
+            if 'access_token' in response:
+                self.enhanced_user_token = response['access_token']
+                print(f"   Enhanced user registered successfully")
+            
+            if 'user' in response:
+                self.enhanced_user_id = response['user']['id']
+                self.enhanced_user_email = response['user']['email']
+                print(f"   User ID: {self.enhanced_user_id}")
+                print(f"   Email verified: {response['user'].get('email_verified', False)}")
+                print(f"   Phone verified: {response['user'].get('phone_verified', False)}")
+            
+            # Check verification codes were sent
+            if 'verification_sent' in response:
+                verification = response['verification_sent']
+                if verification.get('email') and 'dev_code' in verification['email']:
+                    self.enhanced_email_code = verification['email']['dev_code']
+                    print(f"   Email verification code: {self.enhanced_email_code}")
+                
+                if verification.get('phone') and 'dev_code' in verification['phone']:
+                    self.enhanced_phone_code = verification['phone']['dev_code']
+                    print(f"   Phone verification code: {self.enhanced_phone_code}")
+        
+        return success
+
+    def test_enhanced_user_email_verification(self):
+        """Test verifying email for enhanced registered user"""
+        if not hasattr(self, 'enhanced_email_code') or not hasattr(self, 'enhanced_user_email'):
+            print("⚠️  Skipping enhanced user email verification - missing data")
+            return False
+        
+        verify_data = {
+            "email": self.enhanced_user_email,
+            "code": self.enhanced_email_code
+        }
+        
+        success = self.run_test(
+            "Enhanced User Email Verification",
+            "POST",
+            "/api/auth/verify-email",
+            200,
+            data=verify_data
+        )[0]
+        
+        if success:
+            # Update verification status
+            self.test_update_verification_status(email_verified=True)
+        
+        return success
+
+    def test_update_verification_status(self, email_verified=None, phone_verified=None):
+        """Test updating user verification status"""
+        if not hasattr(self, 'enhanced_user_token'):
+            print("⚠️  Skipping verification status update - no enhanced user token")
+            return False
+        
+        params = {}
+        if email_verified is not None:
+            params['email_verified'] = email_verified
+        if phone_verified is not None:
+            params['phone_verified'] = phone_verified
+        
+        # Set the token for this request
+        old_token = self.access_token
+        self.access_token = self.enhanced_user_token
+        
+        success = self.run_test(
+            "Update Verification Status",
+            "POST",
+            "/api/auth/update-verification-status",
+            200,
+            params=params,
+            auth_required=True
+        )[0]
+        
+        # Restore original token
+        self.access_token = old_token
+        
+        return success
+
+    def test_forgot_password_email(self):
+        """Test forgot password with email"""
+        if not hasattr(self, 'enhanced_user_email'):
+            # Use a test email
+            test_email = "testuser@example.com"
+        else:
+            test_email = self.enhanced_user_email
+        
+        forgot_data = {
+            "identifier": test_email,
+            "method": "email"
+        }
+        
+        success, response = self.run_test(
+            "Forgot Password - Email",
+            "POST",
+            "/api/auth/forgot-password",
+            200,
+            data=forgot_data
+        )
+        
+        if success and 'dev_code' in response:
+            self.password_reset_code = response['dev_code']
+            self.password_reset_identifier = test_email
+            print(f"   Password reset code: {self.password_reset_code}")
+        
+        return success
+
+    def test_reset_password(self):
+        """Test password reset with verification code"""
+        if not hasattr(self, 'password_reset_code') or not hasattr(self, 'password_reset_identifier'):
+            print("⚠️  Skipping password reset test - no reset code available")
+            return False
+        
+        reset_data = {
+            "identifier": self.password_reset_identifier,
+            "code": self.password_reset_code,
+            "new_password": "NewSecurePassword123!"
+        }
+        
+        return self.run_test(
+            "Reset Password",
+            "POST",
+            "/api/auth/reset-password",
+            200,
+            data=reset_data
+        )[0]
+
+    def test_enhanced_registration_duplicate_email(self):
+        """Test enhanced registration with duplicate email (should fail)"""
+        registration_data = {
+            "email": "testuser@example.com",  # Existing email
+            "password": "SecurePassword123!",
+            "name": "Duplicate Test User",
+            "phone": "+1555999999",
+            "role": "customer"
+        }
+        
+        return self.run_test(
+            "Enhanced Registration - Duplicate Email",
+            "POST",
+            "/api/auth/register-enhanced",
+            400,  # Should fail with 400
+            data=registration_data
+        )[0]
+
+    def test_invalid_verification_codes(self):
+        """Test verification with invalid codes"""
+        # Test invalid email verification
+        invalid_email_data = {
+            "email": "test.verification@example.com",
+            "code": "000000"  # Invalid code
+        }
+        
+        success1 = self.run_test(
+            "Invalid Email Verification Code",
+            "POST",
+            "/api/auth/verify-email",
+            400,  # Should fail
+            data=invalid_email_data
+        )[0]
+        
+        # Test invalid phone verification
+        invalid_phone_data = {
+            "phone": "+1234567890",
+            "code": "000000"  # Invalid code
+        }
+        
+        success2 = self.run_test(
+            "Invalid Phone Verification Code",
+            "POST",
+            "/api/auth/verify-phone",
+            400,  # Should fail
+            data=invalid_phone_data
+        )[0]
+        
+        return success1 and success2
+
+    def test_verification_flow_complete(self):
+        """Test complete verification flow: register -> verify email -> verify phone"""
+        print("\n🔄 Testing Complete Enhanced Registration and Verification Flow...")
+        
+        timestamp = str(int(time.time()))
+        
+        # Step 1: Enhanced Registration
+        registration_data = {
+            "email": f"flow.test.{timestamp}@example.com",
+            "password": "FlowTestPassword123!",
+            "name": "Flow Test User",
+            "phone": f"+1555{timestamp[-6:]}",
+            "role": "customer",
+            "shipping_address": {
+                "full_name": "Flow Test User",
+                "address_line_1": "456 Flow Street",
+                "city": "Flow City",
+                "state": "NY",
+                "postal_code": "10001",
+                "country": "US",
+                "is_default": True
+            }
+        }
+        
+        success1, reg_response = self.run_test(
+            "Flow Registration",
+            "POST",
+            "/api/auth/register-enhanced",
+            200,
+            data=registration_data
+        )
+        
+        if not success1:
+            print("❌ Registration failed - aborting flow test")
+            return False
+        
+        # Extract verification codes
+        email_code = None
+        phone_code = None
+        user_email = registration_data["email"]
+        user_phone = registration_data["phone"]
+        
+        if 'verification_sent' in reg_response:
+            verification = reg_response['verification_sent']
+            if verification.get('email') and 'dev_code' in verification['email']:
+                email_code = verification['email']['dev_code']
+            if verification.get('phone') and 'dev_code' in verification['phone']:
+                phone_code = verification['phone']['dev_code']
+        
+        print(f"   Registration successful - Email: {user_email}, Phone: {user_phone}")
+        print(f"   Email code: {email_code}, Phone code: {phone_code}")
+        
+        # Step 2: Verify Email
+        success2 = True
+        if email_code:
+            verify_email_data = {
+                "email": user_email,
+                "code": email_code
+            }
+            
+            success2, _ = self.run_test(
+                "Flow Email Verification",
+                "POST",
+                "/api/auth/verify-email",
+                200,
+                data=verify_email_data
+            )
+        
+        # Step 3: Verify Phone
+        success3 = True
+        if phone_code:
+            verify_phone_data = {
+                "phone": user_phone,
+                "code": phone_code
+            }
+            
+            success3, _ = self.run_test(
+                "Flow Phone Verification",
+                "POST",
+                "/api/auth/verify-phone",
+                200,
+                data=verify_phone_data
+            )
+        
+        # Overall success
+        flow_success = success1 and success2 and success3
+        
+        if flow_success:
+            print("✅ Complete enhanced registration and verification flow test passed!")
+            self.tests_passed += 1
+        else:
+            print("❌ Enhanced registration and verification flow test failed!")
+        
+        return flow_success
+
 def main():
     print("🚀 Starting E-commerce API Tests - Admin Panel Extension Focus")
     print("=" * 70)
