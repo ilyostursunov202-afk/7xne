@@ -553,7 +553,7 @@ const AdminPanel = () => {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold">${product.revenue.toFixed(2)}</p>
+                            <p className="font-semibold">${product.revenue?.toFixed(2) || '0.00'}</p>
                             <p className="text-sm text-gray-600">revenue</p>
                           </div>
                         </div>
