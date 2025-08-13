@@ -257,7 +257,7 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Price Range
                   </label>
-                  <Select value={priceRange} onValueChange={setPriceRange}>
+                  <Select value={priceRange || ""} onValueChange={setPriceRange}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Prices" />
                     </SelectTrigger>
