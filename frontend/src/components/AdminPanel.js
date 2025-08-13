@@ -461,6 +461,344 @@ const AdminPanel = () => {
             <TabsTrigger value="coupons">Coupons</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="dashboard" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              {/* Enhanced Statistics Cards */}
+              {statistics && (
+                <>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Users className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div className="ml-4">
+                          <p className="text-2xl font-bold text-gray-900">{statistics.user_stats.total_users}</p>
+                          <p className="text-sm text-gray-600">Total Users</p>
+                          <p className="text-xs text-green-600">+{statistics.user_stats.new_users_today} today</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <ShoppingBag className="h-6 w-6 text-green-600" />
+                        </div>
+                        <div className="ml-4">
+                          <p className="text-2xl font-bold text-gray-900">{statistics.order_stats.total_orders}</p>
+                          <p className="text-sm text-gray-600">Total Orders</p>
+                          <p className="text-xs text-green-600">+{statistics.order_stats.orders_today} today</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <DollarSign className="h-6 w-6 text-purple-600" />
+                        </div>
+                        <div className="ml-4">
+                          <p className="text-2xl font-bold text-gray-900">${statistics.order_stats.total_revenue}</p>
+                          <p className="text-sm text-gray-600">Total Revenue</p>
+                          <p className="text-xs text-purple-600">${statistics.order_stats.avg_order_value} avg</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-yellow-100 rounded-lg">
+                          <Activity className="h-6 w-6 text-yellow-600" />
+                        </div>
+                        <div className="ml-4">
+                          <p className="text-2xl font-bold text-gray-900">{statistics.website_stats.visits_today}</p>
+                          <p className="text-sm text-gray-600">Visits Today</p>
+                          <p className="text-xs text-yellow-600">Website traffic</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top Products */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <TrendingUp className="h-5 w-5 mr-2" />
+                    Top Selling Products
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {statistics?.top_products?.length > 0 ? (
+                    <div className="space-y-4">
+                      {statistics.top_products.map((product, index) => (
+                        <div key={product.product_id} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-semibold text-blue-600">{index + 1}</span>
+                            </div>
+                            <div>
+                              <p className="font-medium">{product.name}</p>
+                              <p className="text-sm text-gray-600">{product.total_sold} sold</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">${product.revenue.toFixed(2)}</p>
+                            <p className="text-sm text-gray-600">revenue</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-600">No sales data available</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent Orders */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Clock className="h-5 w-5 mr-2" />
+                    Recent Orders
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {statistics?.recent_orders?.length > 0 ? (
+                    <div className="space-y-4">
+                      {statistics.recent_orders.map((order) => (
+                        <div key={order.id} className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">#{order.id.slice(0, 8)}</p>
+                            <p className="text-sm text-gray-600">
+                              {new Date(order.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">${order.total_amount.toFixed(2)}</p>
+                            <Badge className={`text-xs ${
+                              order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                              order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                              order.status === 'processing' ? 'bg-purple-100 text-purple-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {order.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-600">No recent orders</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Action Logs */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Shield className="h-5 w-5 mr-2" />
+                  Recent Admin Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {actionLogs.length > 0 ? (
+                  <div className="space-y-3">
+                    {actionLogs.slice(0, 5).map((log) => (
+                      <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{log.description}</p>
+                          <p className="text-sm text-gray-600">by {log.admin_name}</p>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                    <Button variant="outline" className="w-full" onClick={fetchActionLogs}>
+                      View All Action Logs
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-gray-600">No recent actions</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <CardTitle className="flex items-center">
+                    <Users className="h-5 w-5 mr-2" />
+                    User Management ({users.length})
+                  </CardTitle>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search users..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="pl-10 w-full sm:w-64"
+                      />
+                    </div>
+                    <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                      <SelectTrigger className="w-full sm:w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Roles</SelectItem>
+                        <SelectItem value="customer">Customer</SelectItem>
+                        <SelectItem value="seller">Seller</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={userStatusFilter} onValueChange={setUserStatusFilter}>
+                      <SelectTrigger className="w-full sm:w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Blocked</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {usersLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="border border-gray-200 rounded-lg p-4">
+                        <div className="animate-pulse flex space-x-4">
+                          <div className="rounded-full bg-gray-300 h-10 w-10"></div>
+                          <div className="flex-1 space-y-2 py-1">
+                            <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                            <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {users.map((user) => (
+                      <div key={user.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-semibold text-blue-600">
+                                {user.name?.charAt(0)?.toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">{user.name}</h4>
+                              <p className="text-sm text-gray-600">{user.email}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={user.is_active ? 'default' : 'destructive'}>
+                              {user.is_active ? 'Active' : 'Blocked'}
+                            </Badge>
+                            <Badge variant="outline" className="capitalize">
+                              {user.role}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                          <div>
+                            <span className="text-gray-500">User ID:</span>
+                            <p className="font-medium">{user.id.slice(0, 8)}...</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Phone:</span>
+                            <p className="font-medium">{user.phone || 'Not provided'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Joined:</span>
+                            <p className="font-medium">{new Date(user.created_at).toLocaleDateString()}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Language:</span>
+                            <p className="font-medium">{user.language || 'en'}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button 
+                            size="sm" 
+                            variant={user.is_active ? "destructive" : "default"}
+                            onClick={() => handleUserStatusUpdate(user.id, !user.is_active)}
+                          >
+                            {user.is_active ? (
+                              <>
+                                <UserX className="h-4 w-4 mr-1" />
+                                Block User
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="h-4 w-4 mr-1" />
+                                Activate User
+                              </>
+                            )}
+                          </Button>
+                          
+                          <Select 
+                            value={user.role} 
+                            onValueChange={(role) => handleUserRoleUpdate(user.id, role)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="customer">Customer</SelectItem>
+                              <SelectItem value="seller">Seller</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // View user details - could open a modal
+                              alert(`User Details:\nID: ${user.id}\nName: ${user.name}\nEmail: ${user.email}\nRole: ${user.role}\nStatus: ${user.is_active ? 'Active' : 'Blocked'}`);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {users.length === 0 && (
+                      <div className="text-center py-8">
+                        <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600">No users found matching your criteria</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="sellers" className="space-y-6">
             <Card>
               <CardHeader>
