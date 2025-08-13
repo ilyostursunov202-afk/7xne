@@ -655,7 +655,7 @@ class EcommerceAPITester:
             "PUT",
             "/api/profile/language",
             200,
-            data={"language": "ru"},
+            params={"language": "ru"},
             auth_required=True
         )[0]
         
@@ -665,7 +665,7 @@ class EcommerceAPITester:
             "PUT",
             "/api/profile/language",
             200,
-            data={"language": "en"},
+            params={"language": "en"},
             auth_required=True
         )[0]
         
