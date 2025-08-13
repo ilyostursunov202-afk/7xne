@@ -1671,6 +1671,9 @@ const CatalogPageWrapper = () => {
     />
   );
 };
+
+// Product detail page wrapper  
+const ProductDetailPageWrapper = () => {
   const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
   
   const handleWishlistToggle = (productId) => {
