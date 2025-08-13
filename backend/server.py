@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 # Import our custom modules
 from models import *
 from verification_service import verification_service
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 # Define SellerStats model locally since it's not in models.py
 class SellerStats(BaseModel):
