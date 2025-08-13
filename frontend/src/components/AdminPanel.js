@@ -376,6 +376,181 @@ const AdminPanel = () => {
     }
   };
 
+  // Mass selection functions
+  const toggleSelectProduct = (productId) => {
+    setSelectedProducts(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const toggleSelectAllProducts = () => {
+    setSelectedProducts(prev => 
+      prev.length === products.length ? [] : products.map(p => p.id)
+    );
+  };
+
+  const handleMassDeleteProducts = async () => {
+    if (selectedProducts.length === 0) {
+      alert('Выберите товары для удаления');
+      return;
+    }
+
+    if (!confirm(`Вы уверены, что хотите удалить ${selectedProducts.length} товаров?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // Delete products one by one
+      const promises = selectedProducts.map(productId => 
+        api.delete(`/api/products/${productId}`)
+      );
+      
+      await Promise.all(promises);
+      
+      // Update local state
+      setProducts(products.filter(p => !selectedProducts.includes(p.id)));
+      setSelectedProducts([]);
+      alert(`${selectedProducts.length} товаров успешно удалено!`);
+    } catch (error) {
+      console.error('Error in mass delete:', error);
+      alert('Ошибка при массовом удалении товаров');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelectUser = (userId) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const toggleSelectAllUsers = () => {
+    setSelectedUsers(prev => 
+      prev.length === users.length ? [] : users.map(u => u.id)
+    );
+  };
+
+  const handleMassDeleteUsers = async () => {
+    if (selectedUsers.length === 0) {
+      alert('Выберите пользователей для удаления');
+      return;
+    }
+
+    if (!confirm(`Вы уверены, что хотите удалить ${selectedUsers.length} пользователей?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const promises = selectedUsers.map(userId => 
+        api.delete(`/api/admin/users/${userId}`)
+      );
+      
+      await Promise.all(promises);
+      
+      setUsers(users.filter(u => !selectedUsers.includes(u.id)));
+      setSelectedUsers([]);
+      alert(`${selectedUsers.length} пользователей успешно удалено!`);
+    } catch (error) {
+      console.error('Error in mass delete users:', error);
+      alert('Ошибка при массовом удалении пользователей');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelectOrder = (orderId) => {
+    setSelectedOrders(prev => 
+      prev.includes(orderId) 
+        ? prev.filter(id => id !== orderId)
+        : [...prev, orderId]
+    );
+  };
+
+  const toggleSelectAllOrders = () => {
+    setSelectedOrders(prev => 
+      prev.length === orders.length ? [] : orders.map(o => o.id)
+    );
+  };
+
+  const handleMassDeleteOrders = async () => {
+    if (selectedOrders.length === 0) {
+      alert('Выберите заказы для удаления');
+      return;
+    }
+
+    if (!confirm(`Вы уверены, что хотите удалить ${selectedOrders.length} заказов?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const promises = selectedOrders.map(orderId => 
+        api.delete(`/api/orders/${orderId}`)
+      );
+      
+      await Promise.all(promises);
+      
+      setOrders(orders.filter(o => !selectedOrders.includes(o.id)));
+      setSelectedOrders([]);
+      alert(`${selectedOrders.length} заказов успешно удалено!`);
+    } catch (error) {
+      console.error('Error in mass delete orders:', error);
+      alert('Ошибка при массовом удалении заказов');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelectCoupon = (couponId) => {
+    setSelectedCoupons(prev => 
+      prev.includes(couponId) 
+        ? prev.filter(id => id !== couponId)
+        : [...prev, couponId]
+    );
+  };
+
+  const toggleSelectAllCoupons = () => {
+    setSelectedCoupons(prev => 
+      prev.length === coupons.length ? [] : coupons.map(c => c.id)
+    );
+  };
+
+  const handleMassDeleteCoupons = async () => {
+    if (selectedCoupons.length === 0) {
+      alert('Выберите купоны для удаления');
+      return;
+    }
+
+    if (!confirm(`Вы уверены, что хотите удалить ${selectedCoupons.length} купонов?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const promises = selectedCoupons.map(couponId => 
+        api.delete(`/api/coupons/${couponId}`)
+      );
+      
+      await Promise.all(promises);
+      
+      setCoupons(coupons.filter(c => !selectedCoupons.includes(c.id)));
+      setSelectedCoupons([]);
+      alert(`${selectedCoupons.length} купонов успешно удалено!`);
+    } catch (error) {
+      console.error('Error in mass delete coupons:', error);
+      alert('Ошибка при массовом удалении купонов');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
