@@ -585,7 +585,7 @@ const AdminPanel = () => {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold">${order.total_amount.toFixed(2)}</p>
+                            <p className="font-semibold">${order.total_amount?.toFixed(2) || '0.00'}</p>
                             <Badge className={`text-xs ${
                               order.status === 'delivered' ? 'bg-green-100 text-green-800' :
                               order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
