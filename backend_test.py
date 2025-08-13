@@ -41,7 +41,7 @@ class EcommerceAPITester:
             elif method == 'DELETE':
                 response = self.session.delete(url, headers=headers)
             elif method == 'PUT':
-                response = self.session.put(url, json=data, headers=headers)
+                response = self.session.put(url, json=data, params=params, headers=headers)
 
             success = response.status_code == expected_status
             if success:
