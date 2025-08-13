@@ -505,7 +505,7 @@ const AdminPanel = () => {
                         <div className="ml-4">
                           <p className="text-2xl font-bold text-gray-900">${statistics.order_stats.total_revenue || 0}</p>
                           <p className="text-sm text-gray-600">Total Revenue</p>
-                          <p className="text-xs text-purple-600">${statistics.order_stats.avg_order_value} avg</p>
+                          <p className="text-xs text-purple-600">${statistics.order_stats.avg_order_value || 0} avg</p>
                         </div>
                       </div>
                     </CardContent>
