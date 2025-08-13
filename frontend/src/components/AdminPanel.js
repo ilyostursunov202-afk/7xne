@@ -951,7 +951,15 @@ const AdminPanel = () => {
                             <Badge variant="secondary">{product.category}</Badge>
                           </td>
                           <td className="border border-gray-300 px-4 py-3">
-                            <span className="font-semibold">${product.price?.toFixed(2)}</span>
+                            <div className="flex items-center space-x-2">
+                              {product.price_negotiable ? (
+                                <span className="text-sm font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                                  💬 Договорная
+                                </span>
+                              ) : (
+                                <span className="font-semibold">${product.price?.toFixed(2)}</span>
+                              )}
+                            </div>
                           </td>
                           <td className="border border-gray-300 px-4 py-3">
                             <span className={
