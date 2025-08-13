@@ -901,9 +901,15 @@ const AdminPanel = () => {
                 ) : (
                   <div className="space-y-4">
                     {users.map((user) => (
-                      <div key={user.id} className="border border-gray-200 rounded-lg p-4">
+                      <div key={user.id} className={`border border-gray-200 rounded-lg p-4 ${selectedUsers.includes(user.id) ? 'bg-blue-50 border-blue-300' : ''}`}>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedUsers.includes(user.id)}
+                              onChange={() => toggleSelectUser(user.id)}
+                              className="rounded"
+                            />
                             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                               <span className="text-sm font-semibold text-blue-600">
                                 {user.name?.charAt(0)?.toUpperCase()}
