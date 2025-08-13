@@ -457,17 +457,9 @@ const Header = () => {
   const { cartCount, user, logout, setUser } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [loginType, setLoginType] = useState('login');
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   const handleAuthModal = (type) => {
     setLoginType(type);
@@ -497,24 +489,33 @@ const Header = () => {
               </span>
             </Link>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex-1 max-w-xl mx-8">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder={t('search') + ' products, brands, categories...'}
-                  className="pl-10 pr-4 w-full"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </form>
+            {/* Enhanced Search Bar */}
+            <div className="flex-1 max-w-xl mx-8">
+              <EnhancedSearch />
+            </div>
 
             {/* Navigation */}
             <div className="flex items-center space-x-4">
               {/* Language Switcher */}
               <LanguageSwitcher />
+              
+              {/* Catalog Link */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => navigate('/catalog')}
+                    className="flex items-center space-x-2"
+                  >
+                    <Package className="h-4 w-4" />
+                    <span className="hidden md:inline">{t('catalog') || 'Catalog'}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('catalog') || 'Browse Catalog'}</p>
+                </TooltipContent>
+              </Tooltip>
               
               {user ? (
                 <div className="flex items-center space-x-4">
