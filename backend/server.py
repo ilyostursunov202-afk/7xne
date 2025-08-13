@@ -1743,7 +1743,7 @@ async def create_checkout_session(request: CheckoutRequest, current_user = Depen
         coupon_code = None
         discount_amount = 0.0
         if request.coupon_code:
-            discount_amount, message = await apply_coupon(
+            discount_amount, message = apply_coupon(
                 request.coupon_code, 
                 total_amount,
                 current_user["user_id"] if current_user else None,
