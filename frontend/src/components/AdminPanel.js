@@ -1381,7 +1381,25 @@ const AdminPanel = () => {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle>Coupon Management ({coupons.length})</CardTitle>
+                  <div className="flex items-center space-x-4">
+                    <CardTitle>Coupon Management ({coupons.length})</CardTitle>
+                    {selectedCoupons.length > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">
+                          {selectedCoupons.length} выбрано
+                        </span>
+                        <Button 
+                          onClick={handleMassDeleteCoupons}
+                          disabled={isDeleting}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {isDeleting ? 'Удаление...' : 'Удалить выбранные'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <Button 
                     onClick={() => {
                       resetCouponForm();
@@ -1397,10 +1415,39 @@ const AdminPanel = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                  {coupons.length > 0 && (
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedCoupons.length === coupons.length && coupons.length > 0}
+                          onChange={toggleSelectAllCoupons}
+                          className="rounded"
+                        />
+                        <span className="text-sm font-medium">
+                          Выделить все ({coupons.length} купонов)
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {selectedCoupons.length > 0 && `${selectedCoupons.length} выбрано`}
+                      </div>
+                    </div>
+                  )}
                   {coupons.map((coupon) => (
-                    <div key={coupon.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={coupon.id} className={`border border-gray-200 rounded-lg p-4 ${selectedCoupons.includes(coupon.id) ? 'bg-blue-50 border-blue-300' : ''}`}>
                       <div className="flex items-center justify-between mb-3">
-                        <div>
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedCoupons.includes(coupon.id)}
+                            onChange={() => toggleSelectCoupon(coupon.id)}
+                            className="rounded"
+                          />
+                          <div>
+                            <h4 className="font-semibold text-lg">{coupon.code}</h4>
+                            <p className="text-sm text-gray-600">{coupon.description}</p>
+                          </div>
+                        </div>
                           <h4 className="font-semibold text-lg">{coupon.code}</h4>
                           <p className="text-sm text-gray-600">{coupon.description}</p>
                         </div>
