@@ -1598,6 +1598,7 @@ def main():
         
         # Authentication first for update tests
         tester.test_user_login,
+        tester.test_admin_login,
         
         # ENHANCED PRODUCT MANAGEMENT TESTS (PRIMARY FOCUS)
         tester.test_create_product_with_regular_pricing,
