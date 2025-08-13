@@ -1140,7 +1140,15 @@ const AdminPanel = () => {
                     </thead>
                     <tbody>
                       {products.map((product) => (
-                        <tr key={product.id} className="hover:bg-gray-50">
+                        <tr key={product.id} className={`hover:bg-gray-50 ${selectedProducts.includes(product.id) ? 'bg-blue-50' : ''}`}>
+                          <td className="border border-gray-300 px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.includes(product.id)}
+                              onChange={() => toggleSelectProduct(product.id)}
+                              className="rounded"
+                            />
+                          </td>
                           <td className="border border-gray-300 px-4 py-3">
                             <div className="w-12 h-12 bg-gray-100 rounded-md overflow-hidden">
                               {product.images?.[0] ? (
