@@ -900,6 +900,24 @@ const AdminPanel = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {users.length > 0 && (
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.length === users.length && users.length > 0}
+                            onChange={toggleSelectAllUsers}
+                            className="rounded"
+                          />
+                          <span className="text-sm font-medium">
+                            Выделить все ({users.length} пользователей)
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {selectedUsers.length > 0 && `${selectedUsers.length} выбрано`}
+                        </div>
+                      </div>
+                    )}
                     {users.map((user) => (
                       <div key={user.id} className={`border border-gray-200 rounded-lg p-4 ${selectedUsers.includes(user.id) ? 'bg-blue-50 border-blue-300' : ''}`}>
                         <div className="flex items-center justify-between mb-3">
