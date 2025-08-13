@@ -280,7 +280,7 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Minimum Rating
                   </label>
-                  <Select value={minRating} onValueChange={setMinRating}>
+                  <Select value={minRating || ""} onValueChange={setMinRating}>
                     <SelectTrigger>
                       <SelectValue placeholder="Any Rating" />
                     </SelectTrigger>
