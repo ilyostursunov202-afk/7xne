@@ -188,7 +188,7 @@ class VerificationService:
             }
     
     async def send_email_verification(self, email: str, purpose: str = "verification") -> Dict[str, Any]:
-        """Send email verification code using SendGrid"""
+        """Send email verification code using Gmail SMTP"""
         try:
             code = self.generate_verification_code()
             success = self.store_verification_code(email, code, "email", purpose)
@@ -198,7 +198,7 @@ class VerificationService:
             
             # Prepare email content based on purpose
             if purpose == "password_reset":
-                subject = "Password Reset Code - MarketPlace"
+                subject = "Password Reset Code - 7x Marketplace"
                 html_content = f"""
                 <html>
                     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -216,23 +216,23 @@ class VerificationService:
                             <p>If you didn't request this, please ignore this email.</p>
                             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
                             <p style="color: #666; font-size: 12px;">
-                                This email was sent from MarketPlace. Please do not reply to this email.
+                                This email was sent from 7x Marketplace. Please do not reply to this email.
                             </p>
                         </div>
                     </body>
                 </html>
                 """
             else:
-                subject = "Email Verification Code - MarketPlace"
+                subject = "Email Verification Code - 7x Marketplace"
                 html_content = f"""
                 <html>
                     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                         <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
-                            <h1 style="color: #333;">Welcome to MarketPlace!</h1>
+                            <h1 style="color: #333;">Welcome to 7x Marketplace!</h1>
                         </div>
                         <div style="padding: 20px;">
                             <p>Hello,</p>
-                            <p>Thank you for registering with MarketPlace. Please verify your email address using the code below:</p>
+                            <p>Thank you for registering with 7x Marketplace. Please verify your email address using the code below:</p>
                             <div style="text-align: center; margin: 30px 0;">
                                 <span style="font-size: 32px; font-weight: bold; background-color: #f0f0f0; 
                                            padding: 15px 25px; border-radius: 8px; letter-spacing: 5px;">{code}</span>
@@ -241,43 +241,53 @@ class VerificationService:
                             <p>Welcome to our marketplace community!</p>
                             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
                             <p style="color: #666; font-size: 12px;">
-                                This email was sent from MarketPlace. Please do not reply to this email.
+                                This email was sent from 7x Marketplace. Please do not reply to this email.
                             </p>
                         </div>
                     </body>
                 </html>
                 """
             
-            if self.sendgrid_client:
-                # Send via SendGrid
-                from sendgrid.helpers.mail import Mail
-                
-                message = Mail(
-                    from_email=self.sender_email,
-                    to_emails=email,
-                    subject=subject,
-                    html_content=html_content
-                )
-                
-                response = self.sendgrid_client.send(message)
-                
-                if response.status_code in [200, 201, 202]:
+            # Try to send via Gmail SMTP
+            if self.gmail_user and self.gmail_password:
+                try:
+                    # Create message
+                    msg = MIMEMultipart('alternative')
+                    msg['Subject'] = subject
+                    msg['From'] = self.gmail_user
+                    msg['To'] = email
+                    
+                    # Create HTML part
+                    html_part = MIMEText(html_content, 'html')
+                    msg.attach(html_part)
+                    
+                    # Send via Gmail SMTP
+                    server = smtplib.SMTP('smtp.gmail.com', 587)
+                    server.starttls()
+                    server.login(self.gmail_user, self.gmail_password)
+                    server.send_message(msg)
+                    server.quit()
+                    
+                    print(f"✅ Email sent successfully to {email}")
                     return {
                         "success": True,
                         "message": f"Verification email sent to {email}",
-                        "dev_code": code  # Remove in production
+                        "dev_code": code  # For development - remove in production
                     }
-                else:
-                    print(f"SendGrid error: {response.status_code}")
-                    print(f"📧 Email Code for {email}: {code}")
+                    
+                except Exception as smtp_error:
+                    print(f"SMTP Error: {smtp_error}")
+                    # Fall back to development mode
+                    print(f"📧 Email Code for {email}: {code} (SMTP Failed)")
                     return {
                         "success": True,
-                        "message": f"Email sent to {email} (fallback)",
+                        "message": f"Email sent to {email} (development mode)",
                         "dev_code": code
                     }
             else:
-                # No SendGrid client - development mode
-                print(f"📧 Email Code for {email}: {code}")
+                # No Gmail credentials - development mode
+                print(f"📧 Email Code for {email}: {code} (Development Mode)")
+                print(f"Subject: {subject}")
                 return {
                     "success": True,
                     "message": f"Email sent to {email} (development mode)",
