@@ -1651,8 +1651,26 @@ const AdminPanelWrapper = () => {
   return <AdminPanel />;
 };
 
-// Product detail page wrapper  
-const ProductDetailPageWrapper = () => {
+// Catalog wrapper
+const CatalogPageWrapper = () => {
+  const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
+  
+  const handleWishlistToggle = (productId) => {
+    if (wishlist.some(item => item.id === productId || item.product_id === productId)) {
+      removeFromWishlist(productId);
+    } else {
+      addToWishlist(productId);
+    }
+  };
+
+  return (
+    <CatalogPage 
+      addToCart={addToCart} 
+      wishlist={wishlist}
+      onToggleWishlist={handleWishlistToggle}
+    />
+  );
+};
   const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
   
   const handleWishlistToggle = (productId) => {
