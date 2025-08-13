@@ -59,7 +59,10 @@ class EcommerceAPITester:
                 print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
                 print(f"   Response: {response.text[:200]}...")
 
-            return success, response.json() if response.text and response.status_code < 500 else {}
+            try:
+                return success, response.json() if response.text and response.status_code < 500 else {}
+            except:
+                return success, {}
 
         except Exception as e:
             print(f"❌ Failed - Error: {str(e)}")
