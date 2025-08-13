@@ -72,7 +72,7 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
       ]);
       
       setProducts(productsRes.data);
-      setCategories(categoriesRes.data);
+      setCategories(categoriesRes.data.categories || []);
       setBrands(brandsRes.data.brands || []);
     } catch (error) {
       console.error('Error fetching data:', error);
