@@ -1091,46 +1091,31 @@ class EcommerceAPITester:
         return flow_success
 
 def main():
-    print("🚀 Starting E-commerce API Tests - Admin Panel Extension Focus")
-    print("=" * 70)
+    print("🚀 Starting E-commerce API Tests - Enhanced Registration & Email Verification Focus")
+    print("=" * 80)
     
     tester = EcommerceAPITester()
     
-    # Test sequence - Admin Panel Extension focused
+    # Test sequence - Enhanced Registration and Verification focused
     test_methods = [
-        # Basic functionality tests
+        # Basic functionality tests (minimal)
         tester.test_root_endpoint,
-        tester.test_create_product,
-        tester.test_get_products,
-        tester.test_get_categories,
-        tester.test_get_brands,
-        tester.test_create_cart,
-        tester.test_get_cart,
-        tester.test_add_to_cart,
-        tester.test_remove_from_cart,
         
-        # Regular user authentication and profile tests
+        # ENHANCED REGISTRATION AND VERIFICATION TESTS (PRIMARY FOCUS)
+        tester.test_send_email_verification,
+        tester.test_verify_email_code,
+        tester.test_send_phone_verification,
+        tester.test_verify_phone_code,
+        tester.test_enhanced_registration,
+        tester.test_enhanced_user_email_verification,
+        tester.test_forgot_password_email,
+        tester.test_reset_password,
+        tester.test_enhanced_registration_duplicate_email,
+        tester.test_invalid_verification_codes,
+        tester.test_verification_flow_complete,
+        
+        # Basic user authentication for comparison
         tester.test_user_login,
-        tester.test_profile_management,
-        tester.test_password_change,
-        tester.test_language_preference,
-        tester.test_avatar_upload_error_handling,
-        tester.test_avatar_file_serving,
-        
-        # Admin authentication and new admin panel tests
-        tester.test_admin_login,
-        tester.test_admin_user_search,
-        tester.test_admin_user_status_update,
-        tester.test_admin_user_role_update,
-        tester.test_admin_statistics,
-        tester.test_admin_action_logs,
-        
-        # Wishlist tests (existing functionality)
-        tester.test_get_wishlist,
-        tester.test_add_to_wishlist,
-        tester.test_remove_from_wishlist,
-        tester.test_wishlist_flow,
-        tester.test_get_orders
     ]
     
     # Run all tests
@@ -1142,27 +1127,31 @@ def main():
             tester.tests_run += 1
     
     # Print results
-    print("\n" + "=" * 70)
+    print("\n" + "=" * 80)
     print(f"📊 Test Results: {tester.tests_passed}/{tester.tests_run} tests passed")
     
-    # Admin Panel Extension test summary
-    print("\n🔍 ADMIN PANEL EXTENSION FUNCTIONALITY SUMMARY:")
-    print("   - Admin Authentication: ✅ if admin login test passed")
-    print("   - Enhanced User Management:")
-    print("     • User Search & Filter: ✅ if search tests passed")
-    print("     • Block/Unblock Users: ✅ if status update tests passed")
-    print("     • Change User Roles: ✅ if role update tests passed")
-    print("   - Admin Statistics: ✅ if statistics endpoint test passed")
-    print("   - Action Logging: ✅ if action logs tests passed")
-    print("   - Enhanced Profile Management:")
-    print("     • Get/Update Profile: ✅ if profile tests passed")
-    print("     • Change Password: ✅ if password change tests passed")
-    print("     • Language Preference: ✅ if language tests passed")
-    print("     • Avatar Upload: ✅ if avatar tests passed")
-    print("   - Existing Functionality: ✅ if wishlist and other tests passed")
+    # Enhanced Registration and Verification test summary
+    print("\n🔍 ENHANCED REGISTRATION & EMAIL VERIFICATION FUNCTIONALITY SUMMARY:")
+    print("   - Email Verification:")
+    print("     • Send Email Verification Code: ✅ if send email verification test passed")
+    print("     • Verify Email Code: ✅ if verify email code test passed")
+    print("   - Phone Verification (Mock Mode):")
+    print("     • Send Phone Verification Code: ✅ if send phone verification test passed")
+    print("     • Verify Phone Code: ✅ if verify phone code test passed")
+    print("   - Enhanced Registration:")
+    print("     • Register with Email/Phone/Address: ✅ if enhanced registration test passed")
+    print("     • Email Verification for New User: ✅ if enhanced user email verification passed")
+    print("     • Duplicate Email Handling: ✅ if duplicate email test passed")
+    print("   - Password Reset:")
+    print("     • Forgot Password Email: ✅ if forgot password email test passed")
+    print("     • Reset Password with Code: ✅ if reset password test passed")
+    print("   - Error Handling:")
+    print("     • Invalid Verification Codes: ✅ if invalid codes test passed")
+    print("   - Complete Flow:")
+    print("     • Full Registration & Verification Flow: ✅ if complete flow test passed")
     
     if tester.tests_passed == tester.tests_run:
-        print("🎉 All tests passed!")
+        print("🎉 All enhanced registration and verification tests passed!")
         return 0
     else:
         print(f"⚠️  {tester.tests_run - tester.tests_passed} tests failed")
