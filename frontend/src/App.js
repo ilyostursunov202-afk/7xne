@@ -665,7 +665,19 @@ const Header = () => {
             <DialogHeader>
               <DialogTitle>{t('signup')}</DialogTitle>
             </DialogHeader>
-            <RegisterForm onClose={() => setShowRegisterModal(false)} />
+            <EnhancedRegistration 
+              onClose={() => setShowRegisterModal(false)}
+              onSuccess={(result) => {
+                setShowRegisterModal(false);
+                // Если есть токен, автоматически залогиним пользователя
+                if (result.token) {
+                  localStorage.setItem('accessToken', result.token);
+                  // Можно также получить информацию о пользователе
+                  fetchUserProfile();
+                }
+                alert(result.message || 'Registration completed successfully!');
+              }}
+            />
             <div className="text-center mt-4">
               <Button 
                 variant="link" 
