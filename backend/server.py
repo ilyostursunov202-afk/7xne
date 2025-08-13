@@ -2359,6 +2359,252 @@ async def search_products(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Enhanced Authentication with Phone and Email Verification
+
+# Phone Verification Endpoints
+@app.post("/api/auth/send-phone-verification")
+async def send_phone_verification(request: PhoneVerificationRequest):
+    """Send SMS verification code to phone number"""
+    try:
+        result = await verification_service.send_sms_verification(request.phone)
+        if result["success"]:
+            return {"message": result["message"], "dev_code": result.get("dev_code")}
+        else:
+            raise HTTPException(status_code=400, detail=result["message"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/auth/verify-phone")
+async def verify_phone(request: PhoneVerificationCheck):
+    """Verify phone number with SMS code"""
+    try:
+        result = await verification_service.verify_sms_code(request.phone, request.code)
+        if result["success"]:
+            return {"message": result["message"], "verified": True}
+        else:
+            raise HTTPException(status_code=400, detail=result["message"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Email Verification Endpoints
+@app.post("/api/auth/send-email-verification")
+async def send_email_verification(request: EmailVerificationRequest):
+    """Send email verification code"""
+    try:
+        result = await verification_service.send_email_verification(request.email)
+        if result["success"]:
+            return {"message": result["message"], "dev_code": result.get("dev_code")}
+        else:
+            raise HTTPException(status_code=400, detail=result["message"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/auth/verify-email")
+async def verify_email(request: EmailVerificationCheck):
+    """Verify email with verification code"""
+    try:
+        result = await verification_service.verify_email_code(request.email, request.code)
+        if result["success"]:
+            return {"message": result["message"], "verified": True}
+        else:
+            raise HTTPException(status_code=400, detail=result["message"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Enhanced Registration Endpoint
+@app.post("/api/auth/register-enhanced")
+async def register_enhanced(user: UserCreate):
+    """Enhanced user registration with optional phone and address"""
+    try:
+        # Check if user already exists
+        if users_collection.find_one({"email": user.email}):
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Check if phone is provided and already exists
+        if user.phone and users_collection.find_one({"phone": user.phone}):
+            raise HTTPException(status_code=400, detail="Phone number already registered")
+        
+        # Create user document
+        hashed_password = auth_manager.get_password_hash(user.password)
+        user_doc = UserInDB(
+            email=user.email,
+            hashed_password=hashed_password,
+            name=user.name,
+            phone=user.phone,
+            phone_verified=False,
+            email_verified=False,
+            role=user.role,
+            default_shipping_address=user.shipping_address
+        )
+        
+        # Add shipping address to addresses list if provided
+        if user.shipping_address:
+            user_doc.addresses = [user.shipping_address]
+        
+        # Save to database
+        user_dict = user_doc.dict()
+        users_collection.insert_one(user_dict)
+        
+        # Send verification codes
+        verification_results = {"email": None, "phone": None}
+        
+        if user.email:
+            email_result = await verification_service.send_email_verification(user.email)
+            verification_results["email"] = email_result
+        
+        if user.phone:
+            phone_result = await verification_service.send_sms_verification(user.phone)
+            verification_results["phone"] = phone_result
+        
+        # Create access token
+        access_token = auth_manager.create_access_token(data={"sub": user.email, "user_id": user_doc.id})
+        
+        # Return user data (without password)
+        user_response = UserResponse(
+            id=user_doc.id,
+            email=user_doc.email,
+            name=user_doc.name,
+            phone=user_doc.phone,
+            phone_verified=user_doc.phone_verified,
+            email_verified=user_doc.email_verified,
+            role=user_doc.role,
+            created_at=user_doc.created_at,
+            is_active=user_doc.is_active
+        )
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user_response,
+            "verification_sent": verification_results,
+            "message": "Registration successful. Please verify your email and phone."
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Password Reset Endpoints
+@app.post("/api/auth/forgot-password")
+async def forgot_password(request: PasswordResetRequest):
+    """Send password reset code via email or SMS"""
+    try:
+        # Find user by email or phone
+        user_query = {}
+        if "@" in request.identifier:
+            user_query["email"] = request.identifier
+        else:
+            user_query["phone"] = request.identifier
+        
+        user = users_collection.find_one(user_query)
+        if not user:
+            # Don't reveal if user exists or not for security
+            return {"message": "If the account exists, you will receive a password reset code."}
+        
+        # Send verification code
+        if request.method == "email" and user.get("email"):
+            result = await verification_service.send_email_verification(
+                user["email"], purpose="password_reset"
+            )
+        elif request.method == "sms" and user.get("phone"):
+            result = await verification_service.send_sms_verification(
+                user["phone"], purpose="password_reset"
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Invalid method or missing contact information")
+        
+        if result["success"]:
+            return {
+                "message": f"Password reset code sent via {request.method}",
+                "dev_code": result.get("dev_code")  # Remove in production
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to send reset code")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/auth/reset-password")
+async def reset_password(request: PasswordResetVerify):
+    """Reset password with verification code"""
+    try:
+        # Find user by email or phone
+        user_query = {}
+        if "@" in request.identifier:
+            user_query["email"] = request.identifier
+        else:
+            user_query["phone"] = request.identifier
+        
+        user = users_collection.find_one(user_query)
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid reset request")
+        
+        # Verify the code
+        result = await verification_service.verify_email_code(
+            request.identifier, request.code, purpose="password_reset"
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+        
+        # Update password
+        hashed_password = auth_manager.get_password_hash(request.new_password)
+        users_collection.update_one(
+            {"_id": user["_id"]},
+            {
+                "$set": {
+                    "hashed_password": hashed_password,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        
+        # Log admin action if it's admin
+        if user.get("role") == "admin":
+            await log_admin_action(
+                user["id"],
+                "password_reset",
+                f"Password reset for user {user['email']}",
+                {"reset_method": "code_verification"}
+            )
+        
+        return {"message": "Password reset successful"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Update user verification status
+@app.post("/api/auth/update-verification-status")
+async def update_verification_status(
+    phone_verified: Optional[bool] = None,
+    email_verified: Optional[bool] = None,
+    current_user = Depends(get_current_user_required)
+):
+    """Update user's verification status after successful verification"""
+    try:
+        update_data = {"updated_at": datetime.now(timezone.utc)}
+        
+        if phone_verified is not None:
+            update_data["phone_verified"] = phone_verified
+        
+        if email_verified is not None:
+            update_data["email_verified"] = email_verified
+        
+        users_collection.update_one(
+            {"id": current_user["user_id"]},
+            {"$set": update_data}
+        )
+        
+        return {"message": "Verification status updated successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
