@@ -1327,15 +1327,33 @@ const AdminPanel = () => {
                 
                 <div>
                   <Label htmlFor="price">Price ($) *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    value={productForm.price}
-                    onChange={(e) => setProductForm({...productForm, price: e.target.value})}
-                    placeholder="999.99"
-                    required
-                  />
+                  <div className="space-y-2">
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      value={productForm.price}
+                      onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                      placeholder="999.99"
+                      required={!productForm.price_negotiable}
+                      disabled={productForm.price_negotiable}
+                    />
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="price_negotiable"
+                        checked={productForm.price_negotiable}
+                        onChange={(e) => setProductForm({
+                          ...productForm, 
+                          price_negotiable: e.target.checked,
+                          price: e.target.checked ? '' : productForm.price
+                        })}
+                      />
+                      <Label htmlFor="price_negotiable" className="text-sm font-normal">
+                        💬 Цена договорная
+                      </Label>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
