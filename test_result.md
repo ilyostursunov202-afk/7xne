@@ -245,10 +245,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Enhanced User Management API"
-    - "Admin Statistics Dashboard API"
-    - "Admin Action Logging API"
-    - "Enhanced Profile Management API"
+    - "Enhanced Registration API with Email Verification"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
