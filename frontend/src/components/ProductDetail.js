@@ -193,9 +193,18 @@ const ProductDetailPage = ({ addToCart, wishlist, onToggleWishlist }) => {
               </div>
 
               <div className="flex items-baseline space-x-2 mb-6">
-                <span className="text-3xl font-bold text-blue-600">
-                  ${product.price.toFixed(2)}
-                </span>
+                {product.price_negotiable ? (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-2xl font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border">
+                      💬 Цена договорная
+                    </span>
+                    <span className="text-sm text-gray-600">Свяжитесь для уточнения стоимости</span>
+                  </div>
+                ) : (
+                  <span className="text-3xl font-bold text-blue-600">
+                    ${product.price.toFixed(2)}
+                  </span>
+                )}
                 {product.inventory > 0 ? (
                   <span className="text-green-600 font-medium">In Stock ({product.inventory} available)</span>
                 ) : (
