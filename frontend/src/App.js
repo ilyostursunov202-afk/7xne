@@ -1724,6 +1724,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/search" element={<SearchPage />} />
+                <Route path="/catalog" element={<CatalogPageWrapper />} />
                 <Route path="/cart" element={<CartPageWrapper />} />
                 <Route path="/product/:id" element={<ProductDetailPageWrapper />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
