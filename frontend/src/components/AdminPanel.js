@@ -1402,18 +1402,69 @@ const AdminPanel = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <Label htmlFor="images">Product Images (one URL per line)</Label>
+                  <Label htmlFor="images">Product Images 📸</Label>
                   <Textarea
                     id="images"
                     value={productForm.images}
                     onChange={(e) => setProductForm({...productForm, images: e.target.value})}
                     placeholder="https://example.com/image1.jpg
-https://example.com/image2.jpg"
-                    rows="4"
+https://example.com/image2.jpg
+https://example.com/image3.jpg
+https://example.com/image4.jpg"
+                    rows="6"
                   />
-                  <p className="text-sm text-gray-600 mt-1">
-                    Enter one image URL per line. First image will be the main product image.
-                  </p>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm text-blue-600 font-medium">
+                      💡 Советы по изображениям:
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      • Добавьте одну ссылку на изображение в каждой строке
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      • Первое изображение будет главным в карточке товара  
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      • Рекомендуемый размер: 800x800px или больше
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      • Поддерживаются форматы: JPG, PNG, WebP
+                    </p>
+                    <p className="text-xs text-green-600">
+                      • Можно добавить до 10 изображений для лучшего показа товара
+                    </p>
+                  </div>
+                  
+                  {/* Image Preview */}
+                  {productForm.images.trim() && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Предварительный просмотр:</p>
+                      <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                        {productForm.images.split('\n').filter(url => url.trim()).slice(0, 6).map((url, index) => (
+                          <div key={index} className="relative">
+                            <img 
+                              src={url.trim()} 
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-20 object-cover rounded border"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'block';
+                              }}
+                            />
+                            <div 
+                              className="w-full h-20 bg-gray-200 rounded border flex items-center justify-center text-xs text-gray-500 hidden"
+                            >
+                              Ошибка загрузки
+                            </div>
+                            {index === 0 && (
+                              <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-1 rounded">
+                                Главное
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">
