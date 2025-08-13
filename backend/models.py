@@ -55,6 +55,7 @@ class UserInDB(BaseModel):
     phone: Optional[str] = None
     avatar: Optional[str] = None
     role: UserRole = UserRole.CUSTOMER
+    language: str = "en"  # Default to English
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_active: bool = True
