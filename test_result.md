@@ -244,7 +244,7 @@ test_plan:
 
 agent_communication:
   - agent: "main"
-    message: "User reported basket and product pages not working. Found missing routes in App.js and import issues in ProductDetail.js. Need to fix these first before continuing PWA implementation."
+    message: "User requested enhanced registration with email verification only (no SMS). Will implement Gmail SMTP for email verification and create mock phone verification for future use. Also need to rename site to '7x' and create minimalist logo."
   - agent: "testing"
     message: "Backend testing complete - ✅ Cart API endpoints and Product API endpoints all working perfectly. Issues confirmed to be frontend routing problems."
   - agent: "main"
