@@ -37,6 +37,31 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+# Phone and email verification models
+class PhoneVerificationRequest(BaseModel):
+    phone: str
+
+class PhoneVerificationCheck(BaseModel):
+    phone: str
+    code: str
+
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+
+class EmailVerificationCheck(BaseModel):
+    email: EmailStr
+    code: str
+
+# Password reset models  
+class PasswordResetRequest(BaseModel):
+    identifier: str  # Can be email or phone
+    method: str = "email"  # "email" or "sms"
+
+class PasswordResetVerify(BaseModel):
+    identifier: str
+    code: str
+    new_password: str
+
 class UserResponse(BaseModel):
     id: str
     email: str
