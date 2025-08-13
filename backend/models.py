@@ -53,6 +53,8 @@ class UserInDB(BaseModel):
     hashed_password: str
     name: str
     phone: Optional[str] = None
+    phone_verified: bool = False
+    email_verified: bool = False
     avatar: Optional[str] = None
     role: UserRole = UserRole.CUSTOMER
     language: str = "en"  # Default to English
@@ -60,6 +62,7 @@ class UserInDB(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_active: bool = True
     addresses: List[Dict[str, Any]] = []
+    default_shipping_address: Optional[Dict[str, Any]] = None
 
 # Address Models
 class Address(BaseModel):
