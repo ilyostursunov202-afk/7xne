@@ -451,7 +451,7 @@ const AdminPanel = () => {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="sellers" className="space-y-6">
+        <Tabs defaultValue="dashboard" className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
