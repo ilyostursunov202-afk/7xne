@@ -1515,13 +1515,13 @@ class EcommerceAPITester:
         )
         flow_tests.append(success2)
         
-        # Step 3: Update regular product to negotiable
+        # Step 3: Update regular product to negotiable (using admin)
         if flow_product_id:
-            # Ensure we have authentication
-            if not self.access_token:
-                login_success = self.test_user_login()
-                if not login_success:
-                    print("⚠️  Skipping flow update - authentication failed")
+            # Ensure we have admin authentication
+            if not hasattr(self, 'admin_token') or not self.admin_token:
+                admin_login_success = self.test_admin_login()
+                if not admin_login_success:
+                    print("⚠️  Skipping flow update - admin authentication failed")
                     flow_tests.append(False)
                 else:
                     update_data = {
@@ -1531,7 +1531,7 @@ class EcommerceAPITester:
                     }
                     
                     success3, _ = self.run_test(
-                        "Flow - Update to Negotiable",
+                        "Flow - Update to Negotiable (Admin)",
                         "PUT",
                         f"/api/products/{flow_product_id}",
                         200,
@@ -1547,7 +1547,7 @@ class EcommerceAPITester:
                 }
                 
                 success3, _ = self.run_test(
-                    "Flow - Update to Negotiable",
+                    "Flow - Update to Negotiable (Admin)",
                     "PUT",
                     f"/api/products/{flow_product_id}",
                     200,
