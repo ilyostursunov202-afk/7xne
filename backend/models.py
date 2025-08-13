@@ -32,6 +32,8 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
     avatar: Optional[str] = None
+    addresses: Optional[List[Dict[str, Any]]] = None
+    default_shipping_address: Optional[Dict[str, Any]] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
