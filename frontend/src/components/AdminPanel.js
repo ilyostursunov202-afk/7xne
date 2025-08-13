@@ -1448,9 +1448,6 @@ const AdminPanel = () => {
                             <p className="text-sm text-gray-600">{coupon.description}</p>
                           </div>
                         </div>
-                          <h4 className="font-semibold text-lg">{coupon.code}</h4>
-                          <p className="text-sm text-gray-600">{coupon.description}</p>
-                        </div>
                         <div className="text-right">
                           <Badge className={coupon.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
                             {coupon.is_active ? 'Active' : 'Inactive'}
