@@ -342,7 +342,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Search Function"
+    - "Enhanced User Management API"
+    - "Admin Statistics Dashboard API"
+    - "Admin Action Logging API"
+    - "Enhanced Profile Management API"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
