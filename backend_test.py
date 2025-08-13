@@ -1235,6 +1235,13 @@ class EcommerceAPITester:
             print("⚠️  Skipping update to negotiable test - no regular product ID available")
             return False
         
+        # First login to get authentication
+        if not self.access_token:
+            login_success = self.test_user_login()
+            if not login_success:
+                print("⚠️  Skipping update test - authentication failed")
+                return False
+        
         update_data = {
             "price": 0.0,  # Set price to 0 for negotiable
             "price_negotiable": True,
@@ -1246,7 +1253,8 @@ class EcommerceAPITester:
             "PUT",
             f"/api/products/{self.regular_product_id}",
             200,
-            data=update_data
+            data=update_data,
+            auth_required=True
         )
         
         if success:
