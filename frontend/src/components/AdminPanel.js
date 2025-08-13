@@ -1328,11 +1328,6 @@ const AdminPanel = () => {
                             </p>
                           </div>
                         </div>
-                          <h4 className="font-semibold">Order #{order.id.slice(0, 8)}</h4>
-                          <p className="text-sm text-gray-600">
-                            {new Date(order.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
                         <div className="text-right">
                           <p className="font-semibold">${order.total_amount?.toFixed(2)}</p>
                           <Badge className={`text-xs ${
