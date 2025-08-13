@@ -21,34 +21,28 @@ verification_codes_collection = db['verification_codes']
 
 class VerificationService:
     def __init__(self):
-        # Twilio credentials (will be set when user provides keys)
+        # Gmail SMTP credentials
+        self.gmail_user = os.getenv('GMAIL_USER')  # your-email@gmail.com
+        self.gmail_password = os.getenv('GMAIL_APP_PASSWORD')  # App password, not regular password
+        
+        # Twilio credentials (for future use)
         self.twilio_account_sid = os.getenv('TWILIO_ACCOUNT_SID')
         self.twilio_auth_token = os.getenv('TWILIO_AUTH_TOKEN') 
         self.twilio_verify_service = os.getenv('TWILIO_VERIFY_SERVICE')
         
-        # SendGrid credentials (will be set when user provides keys)
-        self.sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
-        self.sender_email = os.getenv('SENDER_EMAIL', 'noreply@marketplace.com')
-        
         # Initialize clients when credentials are available
         self.twilio_client = None
-        self.sendgrid_client = None
-        self._init_clients()
+        self._init_twilio_client()
     
-    def _init_clients(self):
-        """Initialize Twilio and SendGrid clients if credentials are available"""
+    def _init_twilio_client(self):
+        """Initialize Twilio client if credentials are available"""
         try:
             if self.twilio_account_sid and self.twilio_auth_token:
                 from twilio.rest import Client
                 self.twilio_client = Client(self.twilio_account_sid, self.twilio_auth_token)
                 print("✅ Twilio client initialized")
-            
-            if self.sendgrid_api_key:
-                from sendgrid import SendGridAPIClient
-                self.sendgrid_client = SendGridAPIClient(self.sendgrid_api_key)
-                print("✅ SendGrid client initialized")
         except Exception as e:
-            print(f"⚠️ Error initializing verification clients: {e}")
+            print(f"⚠️ Twilio not available: {e}")
     
     def generate_verification_code(self) -> str:
         """Generate a 6-digit verification code"""
