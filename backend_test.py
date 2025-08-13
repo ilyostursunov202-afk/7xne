@@ -1090,32 +1090,488 @@ class EcommerceAPITester:
         
         return flow_success
 
+    # ENHANCED PRODUCT MANAGEMENT TESTS WITH PRICE NEGOTIABLE FEATURE
+    def test_create_product_with_regular_pricing(self):
+        """Test creating a product with regular pricing (price_negotiable: false)"""
+        product_data = {
+            "name": f"Regular Price Product {datetime.now().strftime('%H%M%S')}",
+            "description": "A product with fixed pricing",
+            "price": 1000.0,
+            "price_negotiable": False,
+            "category": "Electronics",
+            "brand": "TestBrand",
+            "images": [
+                "https://via.placeholder.com/300x300/FF0000/FFFFFF?text=Image1",
+                "https://via.placeholder.com/300x300/00FF00/FFFFFF?text=Image2",
+                "https://via.placeholder.com/300x300/0000FF/FFFFFF?text=Image3"
+            ],
+            "inventory": 50,
+            "tags": ["electronics", "regular-price", "test"]
+        }
+        
+        success, response = self.run_test(
+            "Create Product - Regular Pricing",
+            "POST",
+            "/api/products",
+            200,
+            data=product_data
+        )
+        
+        if success and 'id' in response:
+            self.regular_product_id = response['id']
+            print(f"   Created regular price product ID: {self.regular_product_id}")
+            
+            # Verify price_negotiable field is returned correctly
+            if 'price_negotiable' in response:
+                print(f"   Price negotiable: {response['price_negotiable']}")
+                if response['price_negotiable'] == False:
+                    print("   ✅ Price negotiable field correctly set to False")
+                else:
+                    print("   ❌ Price negotiable field should be False")
+            
+            # Verify multiple images
+            if 'images' in response and len(response['images']) == 3:
+                print(f"   ✅ Multiple images correctly stored: {len(response['images'])} images")
+            else:
+                print(f"   ❌ Expected 3 images, got {len(response.get('images', []))}")
+        
+        return success
+
+    def test_create_product_with_negotiable_pricing(self):
+        """Test creating a product with negotiable pricing (price_negotiable: true)"""
+        product_data = {
+            "name": f"Negotiable Price Product {datetime.now().strftime('%H%M%S')}",
+            "description": "A product with negotiable pricing - price can be discussed",
+            "price": 0.0,  # Price can be 0 when negotiable
+            "price_negotiable": True,
+            "category": "Furniture",
+            "brand": "NegotiableBrand",
+            "images": [
+                "https://via.placeholder.com/400x400/FF6B6B/FFFFFF?text=Negotiable1",
+                "https://via.placeholder.com/400x400/4ECDC4/FFFFFF?text=Negotiable2",
+                "https://via.placeholder.com/400x400/45B7D1/FFFFFF?text=Negotiable3",
+                "https://via.placeholder.com/400x400/96CEB4/FFFFFF?text=Negotiable4",
+                "https://via.placeholder.com/400x400/FFEAA7/FFFFFF?text=Negotiable5"
+            ],
+            "inventory": 10,
+            "tags": ["furniture", "negotiable", "custom-price", "test"]
+        }
+        
+        success, response = self.run_test(
+            "Create Product - Negotiable Pricing",
+            "POST",
+            "/api/products",
+            200,
+            data=product_data
+        )
+        
+        if success and 'id' in response:
+            self.negotiable_product_id = response['id']
+            print(f"   Created negotiable price product ID: {self.negotiable_product_id}")
+            
+            # Verify price_negotiable field is returned correctly
+            if 'price_negotiable' in response:
+                print(f"   Price negotiable: {response['price_negotiable']}")
+                if response['price_negotiable'] == True:
+                    print("   ✅ Price negotiable field correctly set to True")
+                else:
+                    print("   ❌ Price negotiable field should be True")
+            
+            # Verify price can be 0 when negotiable
+            if 'price' in response and response['price'] == 0.0:
+                print("   ✅ Price correctly set to 0 for negotiable product")
+            else:
+                print(f"   ❌ Expected price 0.0, got {response.get('price')}")
+            
+            # Verify multiple images (5 images)
+            if 'images' in response and len(response['images']) == 5:
+                print(f"   ✅ Multiple images correctly stored: {len(response['images'])} images")
+            else:
+                print(f"   ❌ Expected 5 images, got {len(response.get('images', []))}")
+        
+        return success
+
+    def test_create_product_with_default_price_negotiable(self):
+        """Test creating a product without specifying price_negotiable (should default to false)"""
+        product_data = {
+            "name": f"Default Price Negotiable Product {datetime.now().strftime('%H%M%S')}",
+            "description": "A product without price_negotiable specified",
+            "price": 299.99,
+            # price_negotiable not specified - should default to False
+            "category": "Clothing",
+            "brand": "DefaultBrand",
+            "images": ["https://via.placeholder.com/300x300/DDA0DD/FFFFFF?text=Default"],
+            "inventory": 25,
+            "tags": ["clothing", "default", "test"]
+        }
+        
+        success, response = self.run_test(
+            "Create Product - Default Price Negotiable",
+            "POST",
+            "/api/products",
+            200,
+            data=product_data
+        )
+        
+        if success and 'id' in response:
+            self.default_product_id = response['id']
+            print(f"   Created default product ID: {self.default_product_id}")
+            
+            # Verify price_negotiable defaults to False
+            if 'price_negotiable' in response:
+                print(f"   Price negotiable: {response['price_negotiable']}")
+                if response['price_negotiable'] == False:
+                    print("   ✅ Price negotiable correctly defaults to False")
+                else:
+                    print("   ❌ Price negotiable should default to False")
+            else:
+                print("   ❌ Price negotiable field missing from response")
+        
+        return success
+
+    def test_update_product_to_negotiable(self):
+        """Test updating an existing product to make price negotiable"""
+        if not hasattr(self, 'regular_product_id') or not self.regular_product_id:
+            print("⚠️  Skipping update to negotiable test - no regular product ID available")
+            return False
+        
+        update_data = {
+            "price": 0.0,  # Set price to 0 for negotiable
+            "price_negotiable": True,
+            "description": "Updated to negotiable pricing - contact us for best price!"
+        }
+        
+        success, response = self.run_test(
+            "Update Product to Negotiable",
+            "PUT",
+            f"/api/products/{self.regular_product_id}",
+            200,
+            data=update_data
+        )
+        
+        if success:
+            # Verify the update worked
+            if 'price_negotiable' in response and response['price_negotiable'] == True:
+                print("   ✅ Product successfully updated to negotiable pricing")
+            else:
+                print("   ❌ Product update to negotiable pricing failed")
+            
+            if 'price' in response and response['price'] == 0.0:
+                print("   ✅ Price correctly updated to 0 for negotiable product")
+            else:
+                print(f"   ❌ Expected price 0.0, got {response.get('price')}")
+        
+        return success
+
+    def test_update_product_from_negotiable_to_fixed(self):
+        """Test updating a negotiable product to fixed pricing"""
+        if not hasattr(self, 'negotiable_product_id') or not self.negotiable_product_id:
+            print("⚠️  Skipping update from negotiable test - no negotiable product ID available")
+            return False
+        
+        update_data = {
+            "price": 1500.0,  # Set fixed price
+            "price_negotiable": False,
+            "description": "Updated to fixed pricing - no negotiation needed!"
+        }
+        
+        success, response = self.run_test(
+            "Update Product from Negotiable to Fixed",
+            "PUT",
+            f"/api/products/{self.negotiable_product_id}",
+            200,
+            data=update_data
+        )
+        
+        if success:
+            # Verify the update worked
+            if 'price_negotiable' in response and response['price_negotiable'] == False:
+                print("   ✅ Product successfully updated to fixed pricing")
+            else:
+                print("   ❌ Product update to fixed pricing failed")
+            
+            if 'price' in response and response['price'] == 1500.0:
+                print("   ✅ Price correctly updated to 1500.0 for fixed product")
+            else:
+                print(f"   ❌ Expected price 1500.0, got {response.get('price')}")
+        
+        return success
+
+    def test_get_products_includes_price_negotiable(self):
+        """Test that GET /api/products returns price_negotiable field for all products"""
+        success, response = self.run_test(
+            "Get Products - Verify Price Negotiable Field",
+            "GET",
+            "/api/products",
+            200,
+            params={"limit": 10}
+        )
+        
+        if success and isinstance(response, list) and len(response) > 0:
+            products_with_price_negotiable = 0
+            for product in response:
+                if 'price_negotiable' in product:
+                    products_with_price_negotiable += 1
+                    print(f"   Product '{product.get('name', 'Unknown')}': price_negotiable = {product['price_negotiable']}")
+            
+            if products_with_price_negotiable == len(response):
+                print(f"   ✅ All {len(response)} products include price_negotiable field")
+            else:
+                print(f"   ❌ Only {products_with_price_negotiable}/{len(response)} products include price_negotiable field")
+        
+        return success
+
+    def test_get_single_product_includes_price_negotiable(self):
+        """Test that GET /api/products/{id} returns price_negotiable field"""
+        if not hasattr(self, 'regular_product_id') or not self.regular_product_id:
+            print("⚠️  Skipping single product test - no product ID available")
+            return False
+        
+        success, response = self.run_test(
+            "Get Single Product - Verify Price Negotiable Field",
+            "GET",
+            f"/api/products/{self.regular_product_id}",
+            200
+        )
+        
+        if success:
+            if 'price_negotiable' in response:
+                print(f"   ✅ Product includes price_negotiable field: {response['price_negotiable']}")
+            else:
+                print("   ❌ Product missing price_negotiable field")
+            
+            # Also verify images array
+            if 'images' in response:
+                print(f"   ✅ Product includes images array with {len(response['images'])} images")
+            else:
+                print("   ❌ Product missing images field")
+        
+        return success
+
+    def test_product_model_validation_scenarios(self):
+        """Test various product model validation scenarios"""
+        print("\n🔍 Testing Product Model Validation Scenarios...")
+        
+        validation_tests = []
+        
+        # Test 1: Valid negotiable product with price 0
+        test1_data = {
+            "name": "Valid Negotiable Product",
+            "description": "Valid negotiable product",
+            "price": 0.0,
+            "price_negotiable": True,
+            "category": "Test",
+            "brand": "TestBrand",
+            "images": ["https://via.placeholder.com/300"],
+            "inventory": 1,
+            "tags": ["test"]
+        }
+        
+        success1, _ = self.run_test(
+            "Validation - Valid Negotiable Product (price=0)",
+            "POST",
+            "/api/products",
+            200,
+            data=test1_data
+        )
+        validation_tests.append(success1)
+        
+        # Test 2: Valid fixed price product
+        test2_data = {
+            "name": "Valid Fixed Price Product",
+            "description": "Valid fixed price product",
+            "price": 100.0,
+            "price_negotiable": False,
+            "category": "Test",
+            "brand": "TestBrand",
+            "images": ["https://via.placeholder.com/300"],
+            "inventory": 1,
+            "tags": ["test"]
+        }
+        
+        success2, _ = self.run_test(
+            "Validation - Valid Fixed Price Product",
+            "POST",
+            "/api/products",
+            200,
+            data=test2_data
+        )
+        validation_tests.append(success2)
+        
+        # Test 3: Multiple images handling
+        test3_data = {
+            "name": "Multiple Images Product",
+            "description": "Product with multiple images",
+            "price": 50.0,
+            "price_negotiable": False,
+            "category": "Test",
+            "brand": "TestBrand",
+            "images": [
+                "https://via.placeholder.com/300x300/FF0000/FFFFFF?text=1",
+                "https://via.placeholder.com/300x300/00FF00/FFFFFF?text=2",
+                "https://via.placeholder.com/300x300/0000FF/FFFFFF?text=3",
+                "https://via.placeholder.com/300x300/FFFF00/FFFFFF?text=4",
+                "https://via.placeholder.com/300x300/FF00FF/FFFFFF?text=5",
+                "https://via.placeholder.com/300x300/00FFFF/FFFFFF?text=6"
+            ],
+            "inventory": 1,
+            "tags": ["test", "multiple-images"]
+        }
+        
+        success3, response3 = self.run_test(
+            "Validation - Multiple Images Product (6 images)",
+            "POST",
+            "/api/products",
+            200,
+            data=test3_data
+        )
+        
+        if success3 and 'images' in response3:
+            if len(response3['images']) == 6:
+                print("   ✅ All 6 images correctly stored")
+            else:
+                print(f"   ❌ Expected 6 images, got {len(response3['images'])}")
+        
+        validation_tests.append(success3)
+        
+        # Overall validation success
+        all_validation_passed = all(validation_tests)
+        
+        if all_validation_passed:
+            print("✅ All product model validation tests passed!")
+            self.tests_passed += 1
+        else:
+            print("❌ Some product model validation tests failed!")
+        
+        return all_validation_passed
+
+    def test_enhanced_product_management_flow(self):
+        """Test complete enhanced product management flow"""
+        print("\n🔄 Testing Complete Enhanced Product Management Flow...")
+        
+        flow_tests = []
+        
+        # Step 1: Create regular price product
+        regular_data = {
+            "name": f"Flow Regular Product {datetime.now().strftime('%H%M%S')}",
+            "description": "Flow test regular product",
+            "price": 500.0,
+            "price_negotiable": False,
+            "category": "FlowTest",
+            "brand": "FlowBrand",
+            "images": ["https://via.placeholder.com/300x300/FF0000/FFFFFF?text=Flow1"],
+            "inventory": 20,
+            "tags": ["flow", "regular"]
+        }
+        
+        success1, response1 = self.run_test(
+            "Flow - Create Regular Product",
+            "POST",
+            "/api/products",
+            200,
+            data=regular_data
+        )
+        flow_tests.append(success1)
+        
+        flow_product_id = response1.get('id') if success1 else None
+        
+        # Step 2: Create negotiable price product
+        negotiable_data = {
+            "name": f"Flow Negotiable Product {datetime.now().strftime('%H%M%S')}",
+            "description": "Flow test negotiable product",
+            "price": 0.0,
+            "price_negotiable": True,
+            "category": "FlowTest",
+            "brand": "FlowBrand",
+            "images": [
+                "https://via.placeholder.com/300x300/00FF00/FFFFFF?text=Flow2A",
+                "https://via.placeholder.com/300x300/0000FF/FFFFFF?text=Flow2B"
+            ],
+            "inventory": 5,
+            "tags": ["flow", "negotiable"]
+        }
+        
+        success2, response2 = self.run_test(
+            "Flow - Create Negotiable Product",
+            "POST",
+            "/api/products",
+            200,
+            data=negotiable_data
+        )
+        flow_tests.append(success2)
+        
+        # Step 3: Update regular product to negotiable
+        if flow_product_id:
+            update_data = {
+                "price_negotiable": True,
+                "price": 0.0,
+                "description": "Updated to negotiable in flow test"
+            }
+            
+            success3, _ = self.run_test(
+                "Flow - Update to Negotiable",
+                "PUT",
+                f"/api/products/{flow_product_id}",
+                200,
+                data=update_data
+            )
+            flow_tests.append(success3)
+        else:
+            flow_tests.append(False)
+        
+        # Step 4: Get products and verify price_negotiable fields
+        success4, products_response = self.run_test(
+            "Flow - Get Products with Price Negotiable",
+            "GET",
+            "/api/products",
+            200,
+            params={"category": "FlowTest", "limit": 10}
+        )
+        
+        if success4 and isinstance(products_response, list):
+            flow_products = [p for p in products_response if p.get('category') == 'FlowTest']
+            negotiable_count = sum(1 for p in flow_products if p.get('price_negotiable') == True)
+            print(f"   Found {len(flow_products)} flow products, {negotiable_count} are negotiable")
+        
+        flow_tests.append(success4)
+        
+        # Overall flow success
+        flow_success = all(flow_tests)
+        
+        if flow_success:
+            print("✅ Complete enhanced product management flow test passed!")
+            self.tests_passed += 1
+        else:
+            print("❌ Enhanced product management flow test failed!")
+        
+        return flow_success
+
 def main():
-    print("🚀 Starting E-commerce API Tests - Enhanced Registration & Email Verification Focus")
+    print("🚀 Starting E-commerce API Tests - Enhanced Product Management with Price Negotiable Focus")
     print("=" * 80)
     
     tester = EcommerceAPITester()
     
-    # Test sequence - Enhanced Registration and Verification focused
+    # Test sequence - Enhanced Product Management focused
     test_methods = [
-        # Basic functionality tests (minimal)
+        # Basic functionality tests
         tester.test_root_endpoint,
         
-        # ENHANCED REGISTRATION AND VERIFICATION TESTS (PRIMARY FOCUS)
-        tester.test_send_email_verification,
-        tester.test_verify_email_code,
-        tester.test_send_phone_verification,
-        tester.test_verify_phone_code,
-        tester.test_enhanced_registration,
-        tester.test_enhanced_user_email_verification,
-        tester.test_forgot_password_email,
-        tester.test_reset_password,
-        tester.test_enhanced_registration_duplicate_email,
-        tester.test_invalid_verification_codes,
-        tester.test_verification_flow_complete,
+        # ENHANCED PRODUCT MANAGEMENT TESTS (PRIMARY FOCUS)
+        tester.test_create_product_with_regular_pricing,
+        tester.test_create_product_with_negotiable_pricing,
+        tester.test_create_product_with_default_price_negotiable,
+        tester.test_update_product_to_negotiable,
+        tester.test_update_product_from_negotiable_to_fixed,
+        tester.test_get_products_includes_price_negotiable,
+        tester.test_get_single_product_includes_price_negotiable,
+        tester.test_product_model_validation_scenarios,
+        tester.test_enhanced_product_management_flow,
         
-        # Basic user authentication for comparison
-        tester.test_user_login,
+        # Basic product functionality for comparison
+        tester.test_create_product,
+        tester.test_get_products,
+        tester.test_get_product_detail,
     ]
     
     # Run all tests
