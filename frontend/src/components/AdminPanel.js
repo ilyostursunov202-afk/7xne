@@ -336,6 +336,7 @@ const AdminPanel = () => {
       name: product.name,
       description: product.description || '',
       price: product.price.toString(),
+      price_negotiable: product.price_negotiable || false,
       category: product.category || '',
       brand: product.brand || '',
       inventory: product.inventory.toString(),
