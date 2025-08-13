@@ -102,6 +102,72 @@ const AdminPanel = () => {
     fetchAdminData();
   }, []);
 
+  const fetchUsers = async () => {
+    try {
+      setUsersLoading(true);
+      const params = new URLSearchParams();
+      if (userSearch) params.append('q', userSearch);
+      if (userRoleFilter && userRoleFilter !== 'all') params.append('role', userRoleFilter);
+      if (userStatusFilter && userStatusFilter !== 'all') params.append('status', userStatusFilter);
+      params.append('limit', '50');
+      
+      const response = await api.get(`/api/admin/users/search?${params.toString()}`);
+      setUsers(response.data.users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const fetchActionLogs = async () => {
+    try {
+      const response = await api.get('/api/admin/action-logs?limit=20');
+      setActionLogs(response.data.logs);
+    } catch (error) {
+      console.error('Error fetching action logs:', error);
+    }
+  };
+
+  const handleUserStatusUpdate = async (userId, isActive) => {
+    try {
+      await api.put(`/api/admin/users/${userId}/status`, null, {
+        params: { is_active: isActive }
+      });
+      
+      // Refresh users list
+      await fetchUsers();
+      await fetchActionLogs(); // Refresh logs to show the action
+      
+      alert(`User ${isActive ? 'activated' : 'blocked'} successfully`);
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      alert('Failed to update user status');
+    }
+  };
+
+  const handleUserRoleUpdate = async (userId, role) => {
+    try {
+      await api.put(`/api/admin/users/${userId}/role`, null, {
+        params: { role }
+      });
+      
+      // Refresh users list
+      await fetchUsers();
+      await fetchActionLogs(); // Refresh logs to show the action
+      
+      alert(`User role updated to ${role} successfully`);
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      alert('Failed to update user role');
+    }
+  };
+
+  // Add this after fetchAdminData
+  useEffect(() => {
+    fetchUsers();
+  }, [userSearch, userRoleFilter, userStatusFilter]);
+
   const fetchAdminData = async () => {
     try {
       setLoading(true);
@@ -119,8 +185,9 @@ const AdminPanel = () => {
       setOrders(ordersRes.data.orders);
       setStatistics(statsRes.data);
       
-      // Fetch initial users
+      // Fetch initial users and action logs
       await fetchUsers();
+      await fetchActionLogs();
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
