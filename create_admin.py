@@ -56,7 +56,7 @@ if __name__ == "__main__":
     try:
         email, password = create_admin_user()
         print(f"\n🎯 ADMIN LOGIN CREDENTIALS:")
-        print(f"URL: https://marketcraft-9.preview.emergentagent.com/admin")
+        print(f"URL: https://shopfix-2.preview.emergentagent.com/admin")
         print(f"Email: {email}")
         print(f"Password: {password}")
     except Exception as e:

@@ -11,7 +11,7 @@ from datetime import datetime
 
 class AddToCartTester:
     def __init__(self):
-        self.base_url = "https://d80afeaf-a107-473e-99e9-b5d4d91b17c9.preview.emergentagent.com"
+        self.base_url = "https://shopfix-2.preview.emergentagent.com"
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
         self.cart_id = None
