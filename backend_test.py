@@ -760,16 +760,24 @@ def main():
             tester.tests_run += 1
     
     # Print results
-    print("\n" + "=" * 50)
+    print("\n" + "=" * 70)
     print(f"📊 Test Results: {tester.tests_passed}/{tester.tests_run} tests passed")
     
-    # Specific wishlist test summary
-    print("\n🔍 WISHLIST FUNCTIONALITY SUMMARY:")
-    print("   - User Authentication: ✅ if login test passed")
-    print("   - Get Wishlist: ✅ if wishlist retrieval worked")
-    print("   - Add to Wishlist: ✅ if product addition worked")
-    print("   - Remove from Wishlist: ✅ if product removal worked")
-    print("   - Complete Flow: ✅ if full add/remove cycle worked")
+    # Admin Panel Extension test summary
+    print("\n🔍 ADMIN PANEL EXTENSION FUNCTIONALITY SUMMARY:")
+    print("   - Admin Authentication: ✅ if admin login test passed")
+    print("   - Enhanced User Management:")
+    print("     • User Search & Filter: ✅ if search tests passed")
+    print("     • Block/Unblock Users: ✅ if status update tests passed")
+    print("     • Change User Roles: ✅ if role update tests passed")
+    print("   - Admin Statistics: ✅ if statistics endpoint test passed")
+    print("   - Action Logging: ✅ if action logs tests passed")
+    print("   - Enhanced Profile Management:")
+    print("     • Get/Update Profile: ✅ if profile tests passed")
+    print("     • Change Password: ✅ if password change tests passed")
+    print("     • Language Preference: ✅ if language tests passed")
+    print("     • Avatar Upload: ✅ if avatar tests passed")
+    print("   - Existing Functionality: ✅ if wishlist and other tests passed")
     
     if tester.tests_passed == tester.tests_run:
         print("🎉 All tests passed!")
