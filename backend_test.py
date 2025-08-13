@@ -1518,20 +1518,44 @@ class EcommerceAPITester:
         
         # Step 3: Update regular product to negotiable
         if flow_product_id:
-            update_data = {
-                "price_negotiable": True,
-                "price": 0.0,
-                "description": "Updated to negotiable in flow test"
-            }
-            
-            success3, _ = self.run_test(
-                "Flow - Update to Negotiable",
-                "PUT",
-                f"/api/products/{flow_product_id}",
-                200,
-                data=update_data
-            )
-            flow_tests.append(success3)
+            # Ensure we have authentication
+            if not self.access_token:
+                login_success = self.test_user_login()
+                if not login_success:
+                    print("⚠️  Skipping flow update - authentication failed")
+                    flow_tests.append(False)
+                else:
+                    update_data = {
+                        "price_negotiable": True,
+                        "price": 0.0,
+                        "description": "Updated to negotiable in flow test"
+                    }
+                    
+                    success3, _ = self.run_test(
+                        "Flow - Update to Negotiable",
+                        "PUT",
+                        f"/api/products/{flow_product_id}",
+                        200,
+                        data=update_data,
+                        auth_required=True
+                    )
+                    flow_tests.append(success3)
+            else:
+                update_data = {
+                    "price_negotiable": True,
+                    "price": 0.0,
+                    "description": "Updated to negotiable in flow test"
+                }
+                
+                success3, _ = self.run_test(
+                    "Flow - Update to Negotiable",
+                    "PUT",
+                    f"/api/products/{flow_product_id}",
+                    200,
+                    data=update_data,
+                    auth_required=True
+                )
+                flow_tests.append(success3)
         else:
             flow_tests.append(False)
         
