@@ -105,7 +105,10 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
       if (minRating) params.append('min_rating', minRating);
       
       const response = await api.get(`/api/products/search?${params.toString()}`);
-      setProducts(response.data.products || response.data || []);
+      const productsData = response.data?.products || response.data || [];
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      
+      console.log('Filtered products:', productsData.length);
     } catch (error) {
       console.error('Error fetching products:', error);
       setProducts([]);
