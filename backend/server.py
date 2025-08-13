@@ -9,6 +9,7 @@ import os
 import uuid
 import json
 import asyncio
+import shutil
 from dotenv import load_dotenv
 
 # Import our custom modules
