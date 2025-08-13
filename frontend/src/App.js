@@ -1054,9 +1054,15 @@ const WishlistPage = () => {
                     ({product.reviews_count})
                   </span>
                 </div>
-                <p className="text-lg font-bold text-blue-600">
-                  ${product.price.toFixed(2)}
-                </p>
+                {product.price_negotiable ? (
+                  <p className="text-sm font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg inline-block">
+                    💬 Цена договорная
+                  </p>
+                ) : (
+                  <p className="text-lg font-bold text-blue-600">
+                    ${product.price.toFixed(2)}
+                  </p>
+                )}
               </CardContent>
               
               <CardFooter className="p-4 pt-0">
