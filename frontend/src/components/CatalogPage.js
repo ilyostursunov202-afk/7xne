@@ -235,19 +235,27 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Brand
                   </label>
-                  <Select value={selectedBrand || ""} onValueChange={setSelectedBrand}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Brands" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Brands</SelectItem>
-                      {brands.map((brand) => (
-                        <SelectItem key={brand} value={brand}>
-                          {brand}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <div
+                      className={`p-2 rounded cursor-pointer transition-colors ${
+                        selectedBrand === '' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedBrand('')}
+                    >
+                      All Brands
+                    </div>
+                    {brands.map((brand) => (
+                      <div
+                        key={brand}
+                        className={`p-2 rounded cursor-pointer transition-colors ${
+                          selectedBrand === brand ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => setSelectedBrand(brand)}
+                      >
+                        {brand}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <Separator />
