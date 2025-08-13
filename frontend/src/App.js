@@ -672,8 +672,8 @@ const Header = () => {
                 // Если есть токен, автоматически залогиним пользователя
                 if (result.token) {
                   localStorage.setItem('accessToken', result.token);
-                  // Можно также получить информацию о пользователе
-                  fetchUserProfile();
+                  // Перезагрузим страницу для обновления состояния
+                  window.location.reload();
                 }
                 alert(result.message || 'Registration completed successfully!');
               }}
