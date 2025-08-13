@@ -2260,6 +2260,93 @@ async def update_language_preference(language: str, current_user = Depends(get_c
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Enhanced product search endpoint
+@app.get("/api/products/search")
+async def search_products(
+    q: Optional[str] = None,
+    category: Optional[str] = None,
+    brand: Optional[str] = None,
+    price_range: Optional[str] = None,
+    min_rating: Optional[float] = None,
+    sort: Optional[str] = "name",
+    limit: int = 20,
+    skip: int = 0
+):
+    """Enhanced product search with advanced filtering and sorting"""
+    try:
+        query = {"is_active": True}
+        
+        # Text search
+        if q:
+            query["$or"] = [
+                {"name": {"$regex": q, "$options": "i"}},
+                {"brand": {"$regex": q, "$options": "i"}},
+                {"category": {"$regex": q, "$options": "i"}},
+                {"description": {"$regex": q, "$options": "i"}},
+                {"tags": {"$regex": q, "$options": "i"}}
+            ]
+        
+        # Category filter
+        if category:
+            query["$or"] = [
+                {"category": {"$regex": category, "$options": "i"}},
+                {"subcategory": category}
+            ]
+        
+        # Brand filter
+        if brand:
+            query["brand"] = brand
+        
+        # Price range filter
+        if price_range:
+            if price_range == "1000+":
+                query["price"] = {"$gte": 1000}
+            else:
+                try:
+                    min_price, max_price = map(float, price_range.split('-'))
+                    query["price"] = {"$gte": min_price, "$lte": max_price}
+                except:
+                    pass
+        
+        # Rating filter
+        if min_rating:
+            query["rating"] = {"$gte": min_rating}
+        
+        # Sorting
+        sort_options = {
+            "name": ("name", 1),
+            "name_desc": ("name", -1),
+            "price": ("price", 1),
+            "price_desc": ("price", -1),
+            "rating": ("rating", -1),
+            "newest": ("created_at", -1)
+        }
+        sort_field, sort_direction = sort_options.get(sort, ("name", 1))
+        
+        # Execute query
+        total_count = products_collection.count_documents(query)
+        products = list(
+            products_collection.find(query)
+            .sort(sort_field, sort_direction)
+            .skip(skip)
+            .limit(limit)
+        )
+        
+        # Clean up MongoDB _id field
+        for product in products:
+            product.pop("_id", None)
+        
+        return {
+            "products": products,
+            "total": total_count,
+            "page": skip // limit + 1,
+            "pages": (total_count + limit - 1) // limit,
+            "limit": limit
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
