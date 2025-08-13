@@ -130,12 +130,12 @@ const ProductDetailPage = ({ addToCart, wishlist, onToggleWishlist }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="aspect-square overflow-hidden rounded-lg bg-white border">
+            <div className="aspect-square overflow-hidden rounded-lg bg-white border shadow-lg">
               {product.images && product.images.length > 0 ? (
                 <img
                   src={product.images[selectedImage]}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-100">
@@ -145,22 +145,30 @@ const ProductDetailPage = ({ addToCart, wishlist, onToggleWishlist }) => {
             </div>
             
             {product.images && product.images.length > 1 && (
-              <div className="flex space-x-2">
-                {product.images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${
-                      selectedImage === index ? 'border-blue-600' : 'border-gray-200'
-                    }`}
-                  >
-                    <img
-                      src={image}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">
+                  📸 Изображения ({product.images.length})
+                </p>
+                <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto">
+                  {product.images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                      className={`aspect-square rounded-lg overflow-hidden border-2 hover:border-blue-400 transition-colors ${
+                        selectedImage === index ? 'border-blue-600 ring-2 ring-blue-200' : 'border-gray-200'
+                      }`}
+                    >
+                      <img
+                        src={image}
+                        alt={`${product.name} ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
