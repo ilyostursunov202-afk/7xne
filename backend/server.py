@@ -1881,6 +1881,64 @@ async def process_successful_payment(transaction_data: dict):
     except Exception as e:
         print(f"Error processing successful payment: {e}")
 
+# Checkout Status Endpoint
+@app.get("/api/checkout/status/{session_id}")
+async def get_checkout_status(session_id: str):
+    try:
+        # First check our database
+        transaction = payment_transactions_collection.find_one({"session_id": session_id})
+        if not transaction:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+        
+        # If already processed, return cached status
+        if transaction.get("payment_status") == "paid":
+            return {
+                "status": "complete",
+                "payment_status": "paid",
+                "amount_total": int(transaction["amount"] * 100),  # Convert to cents
+                "currency": transaction.get("currency", "usd"),
+                "metadata": {
+                    "cart_id": transaction.get("cart_id"),
+                    "user_id": transaction.get("user_id")
+                }
+            }
+        
+        # Check with Stripe for latest status
+        if not stripe_checkout:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
+        
+        checkout_status = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Update our database with latest status
+        update_data = {
+            "status": checkout_status.status,
+            "payment_status": checkout_status.payment_status,
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        payment_transactions_collection.update_one(
+            {"session_id": session_id},
+            {"$set": update_data}
+        )
+        
+        # If payment successful and not yet processed, create order
+        if checkout_status.payment_status == "paid" and transaction.get("payment_status") != "paid":
+            await process_successful_payment(transaction)
+        
+        return {
+            "status": checkout_status.status,
+            "payment_status": checkout_status.payment_status,
+            "amount_total": checkout_status.amount_total,
+            "currency": checkout_status.currency,
+            "metadata": checkout_status.metadata
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Checkout status error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get checkout status: {str(e)}")
+
 
 # Enhanced User Management for Admin Panel
 @app.get("/api/admin/users/search")
