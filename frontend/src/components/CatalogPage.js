@@ -92,7 +92,7 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
       if (minRating) params.append('min_rating', minRating);
       
       const response = await api.get(`/api/products/search?${params.toString()}`);
-      setProducts(response.data.products || response.data);
+      setProducts(response.data.products || response.data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
       setProducts([]);
