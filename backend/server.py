@@ -73,6 +73,16 @@ search_collection = db["search_queries"]
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY")
 stripe_checkout = None
 
+# Initialize Stripe checkout if key is available
+if STRIPE_API_KEY:
+    try:
+        # We'll initialize it properly in the endpoint with proper webhook URL
+        print(f"✅ Stripe API key loaded: {STRIPE_API_KEY[:12]}...")
+    except Exception as e:
+        print(f"⚠️ Stripe initialization warning: {e}")
+else:
+    print("⚠️ STRIPE_API_KEY not found in environment variables")
+
 # AI integration
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
 auth_manager = AuthManager()
