@@ -1597,6 +1597,9 @@ def main():
         # Basic functionality tests
         tester.test_root_endpoint,
         
+        # Authentication first for update tests
+        tester.test_user_login,
+        
         # ENHANCED PRODUCT MANAGEMENT TESTS (PRIMARY FOCUS)
         tester.test_create_product_with_regular_pricing,
         tester.test_create_product_with_negotiable_pricing,
