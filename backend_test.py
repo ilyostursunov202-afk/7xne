@@ -484,7 +484,7 @@ class EcommerceAPITester:
             "PUT",
             f"/api/admin/users/{self.user_id}/status",
             200,
-            data={"is_active": False},
+            params={"is_active": False},
             auth_required=True
         )[0]
         
@@ -494,7 +494,7 @@ class EcommerceAPITester:
             "PUT",
             f"/api/admin/users/{self.user_id}/status",
             200,
-            data={"is_active": True},
+            params={"is_active": True},
             auth_required=True
         )[0]
         
