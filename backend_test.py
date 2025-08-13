@@ -622,30 +622,22 @@ class EcommerceAPITester:
             return False
         
         # Test password change
-        password_data = {
-            "old_password": "password123",
-            "new_password": "newpassword123"
-        }
         success1 = self.run_test(
             "Change Password",
             "PUT",
             "/api/profile/password",
             200,
-            data=password_data,
+            params={"old_password": "password123", "new_password": "newpassword123"},
             auth_required=True
         )[0]
         
         # Change password back for other tests
-        password_data_back = {
-            "old_password": "newpassword123",
-            "new_password": "password123"
-        }
         success2 = self.run_test(
             "Change Password Back",
             "PUT",
             "/api/profile/password",
             200,
-            data=password_data_back,
+            params={"old_password": "newpassword123", "new_password": "password123"},
             auth_required=True
         )[0]
         
