@@ -105,6 +105,17 @@
 user_problem_statement: "Task: In the existing e-commerce project, extend the admin panel without changing or removing existing working features. Requirements: 1) User Statistics Page - Show total registered users and list with: ID, name, email, role, registration date, status (active/blocked). Search/filter users, block/unblock, change roles. 2) Admin Privileges - View sales/orders/visits statistics. View action logs. 3) Multi-language Support - Add language switcher (English / Russian). Use i18n or JSON files, save user's choice. 4) Finish Profile Settings - Edit name, email, password, avatar with validation. Upload/crop profile picture. Save changes to DB and update UI live. Important: Keep existing catalog, cart, payment, and search features intact. Use same tech stack (React, FastAPI, MongoDB)."
 
 backend:
+  - task: "Enhanced Registration API with Email Verification"
+    implemented: true
+    working: false
+    file: "server.py, verification_service.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Just implemented enhanced registration with email verification using Gmail SMTP. Need to test all endpoints: /api/auth/register-enhanced, /api/auth/send-email-verification, /api/auth/verify-email, /api/auth/forgot-password, /api/auth/reset-password"
   - task: "Enhanced User Management API"
     implemented: true
     working: true
