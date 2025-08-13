@@ -1269,14 +1269,65 @@ const AdminPanel = () => {
           <TabsContent value="orders" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Order Management ({orders.length})</CardTitle>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-4">
+                    <CardTitle>Order Management ({orders.length})</CardTitle>
+                    {selectedOrders.length > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">
+                          {selectedOrders.length} выбрано
+                        </span>
+                        <Button 
+                          onClick={handleMassDeleteOrders}
+                          disabled={isDeleting}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {isDeleting ? 'Удаление...' : 'Удалить выбранные'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                  {orders.length > 0 && (
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedOrders.length === orders.length && orders.length > 0}
+                          onChange={toggleSelectAllOrders}
+                          className="rounded"
+                        />
+                        <span className="text-sm font-medium">
+                          Выделить все ({orders.length} заказов)
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {selectedOrders.length > 0 && `${selectedOrders.length} выбрано`}
+                      </div>
+                    </div>
+                  )}
                   {orders.slice(0, 10).map((order) => (
-                    <div key={order.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={order.id} className={`border border-gray-200 rounded-lg p-4 ${selectedOrders.includes(order.id) ? 'bg-blue-50 border-blue-300' : ''}`}>
                       <div className="flex items-center justify-between mb-3">
-                        <div>
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedOrders.includes(order.id)}
+                            onChange={() => toggleSelectOrder(order.id)}
+                            className="rounded"
+                          />
+                          <div>
+                            <h4 className="font-semibold">Order #{order.id.slice(0, 8)}</h4>
+                            <p className="text-sm text-gray-600">
+                              {new Date(order.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
                           <h4 className="font-semibold">Order #{order.id.slice(0, 8)}</h4>
                           <p className="text-sm text-gray-600">
                             {new Date(order.created_at).toLocaleDateString()}
