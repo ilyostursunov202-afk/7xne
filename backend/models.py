@@ -156,6 +156,7 @@ class Product(BaseModel):
     name: str
     description: str
     price: float
+    price_negotiable: bool = False
     category: str
     brand: str
     images: List[str] = []
