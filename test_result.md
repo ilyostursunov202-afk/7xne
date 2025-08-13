@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "User reported 'error project' caused by JavaScript compilation failures. Fixed babel dependency and restarted frontend service. Build now compiles successfully. Need to verify all JavaScript functionality works without errors and that the application is fully functional for users."
+user_problem_statement: "Task: In the existing e-commerce project, extend the admin panel without changing or removing existing working features. Requirements: 1) User Statistics Page - Show total registered users and list with: ID, name, email, role, registration date, status (active/blocked). Search/filter users, block/unblock, change roles. 2) Admin Privileges - View sales/orders/visits statistics. View action logs. 3) Multi-language Support - Add language switcher (English / Russian). Use i18n or JSON files, save user's choice. 4) Finish Profile Settings - Edit name, email, password, avatar with validation. Upload/crop profile picture. Save changes to DB and update UI live. Important: Keep existing catalog, cart, payment, and search features intact. Use same tech stack (React, FastAPI, MongoDB)."
 
 backend:
   - task: "Cart API endpoints"
