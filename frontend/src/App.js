@@ -1691,24 +1691,27 @@ const ProfileSettingsWrapper = () => {
 };
 export default function App() {
   return (
-    <Router>
-      <AppProvider>
-        <div className="min-h-screen bg-gray-50">
-          <Header />
-          <main>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/cart" element={<CartPageWrapper />} />
-              <Route path="/product/:id" element={<ProductDetailPageWrapper />} />
-              <Route path="/wishlist" element={<WishlistPage />} />
-              <Route path="/orders" element={<OrderHistoryPage />} />
-              <Route path="/admin" element={<AdminPanelWrapper />} />
-              {/* Add other routes */}
-            </Routes>
-          </main>
-        </div>
-      </AppProvider>
-    </Router>
+    <LanguageProvider>
+      <Router>
+        <AppProvider>
+          <div className="min-h-screen bg-gray-50">
+            <Header />
+            <main>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/cart" element={<CartPageWrapper />} />
+                <Route path="/product/:id" element={<ProductDetailPageWrapper />} />
+                <Route path="/wishlist" element={<WishlistPage />} />
+                <Route path="/orders" element={<OrderHistoryPage />} />
+                <Route path="/profile" element={<ProfileSettingsWrapper />} />
+                <Route path="/admin" element={<AdminPanelWrapper />} />
+                {/* Add other routes */}
+              </Routes>
+            </main>
+          </div>
+        </AppProvider>
+      </Router>
+    </LanguageProvider>
   );
 }
