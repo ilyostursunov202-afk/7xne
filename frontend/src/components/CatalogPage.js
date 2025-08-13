@@ -4,7 +4,6 @@ import axios from 'axios';
 import { Search, Filter, Grid, List, SortAsc, SortDesc, Star, Heart, ShoppingCart, Package, Smartphone, Laptop, Headphones, Camera, Watch, Gamepad2, Tv, Speaker, Tablet, Monitor, Keyboard, Mouse, Printer, Router, Flashlight } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardFooter } from './ui/card';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
