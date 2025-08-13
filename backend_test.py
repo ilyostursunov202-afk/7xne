@@ -392,6 +392,318 @@ class EcommerceAPITester:
         
         return flow_success
 
+    # NEW ADMIN PANEL TESTS
+    def test_admin_login(self):
+        """Test admin authentication"""
+        login_data = {
+            "email": "admin@marketplace.com",
+            "password": "admin123"
+        }
+        
+        success, response = self.run_test(
+            "Admin Login",
+            "POST",
+            "/api/auth/login",
+            200,
+            data=login_data
+        )
+        
+        if success and 'access_token' in response:
+            self.admin_token = response['access_token']
+            print(f"   Admin login successful - Token obtained")
+        
+        return success
+
+    def test_admin_user_search(self):
+        """Test admin user search functionality"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            print("⚠️  Skipping admin user search test - not authenticated as admin")
+            return False
+        
+        # Test basic search
+        success1 = self.run_test(
+            "Admin User Search - All Users",
+            "GET",
+            "/api/admin/users/search",
+            200,
+            auth_required=True
+        )[0]
+        
+        # Test search with query
+        params = {"q": "test", "limit": 10}
+        success2 = self.run_test(
+            "Admin User Search - With Query",
+            "GET",
+            "/api/admin/users/search",
+            200,
+            params=params,
+            auth_required=True
+        )[0]
+        
+        # Test search with role filter
+        params = {"role": "customer", "limit": 10}
+        success3 = self.run_test(
+            "Admin User Search - Role Filter",
+            "GET",
+            "/api/admin/users/search",
+            200,
+            params=params,
+            auth_required=True
+        )[0]
+        
+        # Test search with status filter
+        params = {"status": "active", "limit": 10}
+        success4 = self.run_test(
+            "Admin User Search - Status Filter",
+            "GET",
+            "/api/admin/users/search",
+            200,
+            params=params,
+            auth_required=True
+        )[0]
+        
+        return all([success1, success2, success3, success4])
+
+    def test_admin_user_status_update(self):
+        """Test admin user status update (block/unblock)"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            print("⚠️  Skipping admin user status test - not authenticated as admin")
+            return False
+        
+        if not self.user_id:
+            print("⚠️  Skipping admin user status test - no regular user ID available")
+            return False
+        
+        # Test blocking user
+        success1 = self.run_test(
+            "Admin Block User",
+            "PUT",
+            f"/api/admin/users/{self.user_id}/status",
+            200,
+            data={"is_active": False},
+            auth_required=True
+        )[0]
+        
+        # Test unblocking user
+        success2 = self.run_test(
+            "Admin Unblock User",
+            "PUT",
+            f"/api/admin/users/{self.user_id}/status",
+            200,
+            data={"is_active": True},
+            auth_required=True
+        )[0]
+        
+        return success1 and success2
+
+    def test_admin_user_role_update(self):
+        """Test admin user role update"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            print("⚠️  Skipping admin user role test - not authenticated as admin")
+            return False
+        
+        if not self.user_id:
+            print("⚠️  Skipping admin user role test - no regular user ID available")
+            return False
+        
+        # Test changing role to seller
+        success1 = self.run_test(
+            "Admin Change User Role to Seller",
+            "PUT",
+            f"/api/admin/users/{self.user_id}/role",
+            200,
+            data={"role": "seller"},
+            auth_required=True
+        )[0]
+        
+        # Test changing role back to customer
+        success2 = self.run_test(
+            "Admin Change User Role to Customer",
+            "PUT",
+            f"/api/admin/users/{self.user_id}/role",
+            200,
+            data={"role": "customer"},
+            auth_required=True
+        )[0]
+        
+        return success1 and success2
+
+    def test_admin_statistics(self):
+        """Test admin statistics endpoint"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            print("⚠️  Skipping admin statistics test - not authenticated as admin")
+            return False
+        
+        success, response = self.run_test(
+            "Admin Statistics",
+            "GET",
+            "/api/admin/statistics",
+            200,
+            auth_required=True
+        )
+        
+        if success:
+            expected_keys = ['user_stats', 'order_stats', 'product_stats', 'top_products', 'recent_orders', 'website_stats']
+            has_all_keys = all(key in response for key in expected_keys)
+            if has_all_keys:
+                print(f"   ✅ Statistics response contains all expected sections")
+            else:
+                print(f"   ⚠️  Missing some expected keys in statistics response")
+        
+        return success
+
+    def test_admin_action_logs(self):
+        """Test admin action logs endpoint"""
+        if not hasattr(self, 'admin_token') or not self.admin_token:
+            print("⚠️  Skipping admin action logs test - not authenticated as admin")
+            return False
+        
+        # Test getting all action logs
+        success1 = self.run_test(
+            "Admin Action Logs - All",
+            "GET",
+            "/api/admin/action-logs",
+            200,
+            auth_required=True
+        )[0]
+        
+        # Test getting action logs with filter
+        params = {"action_type": "user_status_update", "limit": 10}
+        success2 = self.run_test(
+            "Admin Action Logs - Filtered",
+            "GET",
+            "/api/admin/action-logs",
+            200,
+            params=params,
+            auth_required=True
+        )[0]
+        
+        return success1 and success2
+
+    def test_profile_management(self):
+        """Test profile management endpoints"""
+        if not self.access_token:
+            print("⚠️  Skipping profile management test - not authenticated")
+            return False
+        
+        # Test get profile
+        success1, profile = self.run_test(
+            "Get User Profile",
+            "GET",
+            "/api/profile",
+            200,
+            auth_required=True
+        )
+        
+        # Test update profile
+        profile_data = {
+            "name": "Updated Test User",
+            "phone": "+1234567890"
+        }
+        success2 = self.run_test(
+            "Update User Profile",
+            "PUT",
+            "/api/profile",
+            200,
+            data=profile_data,
+            auth_required=True
+        )[0]
+        
+        return success1 and success2
+
+    def test_password_change(self):
+        """Test password change endpoint"""
+        if not self.access_token:
+            print("⚠️  Skipping password change test - not authenticated")
+            return False
+        
+        # Test password change
+        password_data = {
+            "old_password": "password123",
+            "new_password": "newpassword123"
+        }
+        success1 = self.run_test(
+            "Change Password",
+            "PUT",
+            "/api/profile/password",
+            200,
+            data=password_data,
+            auth_required=True
+        )[0]
+        
+        # Change password back for other tests
+        password_data_back = {
+            "old_password": "newpassword123",
+            "new_password": "password123"
+        }
+        success2 = self.run_test(
+            "Change Password Back",
+            "PUT",
+            "/api/profile/password",
+            200,
+            data=password_data_back,
+            auth_required=True
+        )[0]
+        
+        return success1 and success2
+
+    def test_language_preference(self):
+        """Test language preference update"""
+        if not self.access_token:
+            print("⚠️  Skipping language preference test - not authenticated")
+            return False
+        
+        # Test setting language to Russian
+        success1 = self.run_test(
+            "Set Language to Russian",
+            "PUT",
+            "/api/profile/language",
+            200,
+            data={"language": "ru"},
+            auth_required=True
+        )[0]
+        
+        # Test setting language back to English
+        success2 = self.run_test(
+            "Set Language to English",
+            "PUT",
+            "/api/profile/language",
+            200,
+            data={"language": "en"},
+            auth_required=True
+        )[0]
+        
+        return success1 and success2
+
+    def test_avatar_upload_error_handling(self):
+        """Test avatar upload error handling (without actual file)"""
+        if not self.access_token:
+            print("⚠️  Skipping avatar upload test - not authenticated")
+            return False
+        
+        # This will test the endpoint exists but expect an error since we're not sending a file
+        success, response = self.run_test(
+            "Avatar Upload Error Handling",
+            "POST",
+            "/api/profile/avatar",
+            422,  # Expect validation error for missing file
+            auth_required=True
+        )
+        
+        return success
+
+    def test_avatar_file_serving(self):
+        """Test avatar file serving endpoint"""
+        # Test with a non-existent file (should return 404)
+        success = self.run_test(
+            "Avatar File Serving - Not Found",
+            "GET",
+            "/api/uploads/avatars/nonexistent.jpg",
+            404
+        )[0]
+        
+        return success
+
 def main():
     print("🚀 Starting E-commerce API Tests")
     print("=" * 50)
