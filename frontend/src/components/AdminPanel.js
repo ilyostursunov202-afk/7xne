@@ -67,6 +67,13 @@ const AdminPanel = () => {
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   
+  // Mass selection states
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [selectedOrders, setSelectedOrders] = useState([]);
+  const [selectedCoupons, setSelectedCoupons] = useState([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   // User management states
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('all');
