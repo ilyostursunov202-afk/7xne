@@ -281,20 +281,27 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Price Range
                   </label>
-                  <Select value={priceRange || ""} onValueChange={setPriceRange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Prices" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Prices</SelectItem>
-                      <SelectItem value="0-50">$0 - $50</SelectItem>
-                      <SelectItem value="50-100">$50 - $100</SelectItem>
-                      <SelectItem value="100-250">$100 - $250</SelectItem>
-                      <SelectItem value="250-500">$250 - $500</SelectItem>
-                      <SelectItem value="500-1000">$500 - $1,000</SelectItem>
-                      <SelectItem value="1000+">$1,000+</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    {[
+                      {value: "", label: "All Prices"},
+                      {value: "0-50", label: "$0 - $50"},
+                      {value: "50-100", label: "$50 - $100"},
+                      {value: "100-250", label: "$100 - $250"},
+                      {value: "250-500", label: "$250 - $500"},
+                      {value: "500-1000", label: "$500 - $1,000"},
+                      {value: "1000+", label: "$1,000+"}
+                    ].map((range) => (
+                      <div
+                        key={range.value}
+                        className={`p-2 rounded cursor-pointer transition-colors ${
+                          priceRange === range.value ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => setPriceRange(range.value)}
+                      >
+                        {range.label}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <Separator />
@@ -304,18 +311,25 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Minimum Rating
                   </label>
-                  <Select value={minRating || ""} onValueChange={setMinRating}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Any Rating" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Any Rating</SelectItem>
-                      <SelectItem value="4">4+ Stars</SelectItem>
-                      <SelectItem value="3">3+ Stars</SelectItem>
-                      <SelectItem value="2">2+ Stars</SelectItem>
-                      <SelectItem value="1">1+ Stars</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    {[
+                      {value: "", label: "Any Rating"},
+                      {value: "4", label: "4+ Stars"},
+                      {value: "3", label: "3+ Stars"},
+                      {value: "2", label: "2+ Stars"},
+                      {value: "1", label: "1+ Stars"}
+                    ].map((rating) => (
+                      <div
+                        key={rating.value}
+                        className={`p-2 rounded cursor-pointer transition-colors ${
+                          minRating === rating.value ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => setMinRating(rating.value)}
+                      >
+                        {rating.label}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </Card>
