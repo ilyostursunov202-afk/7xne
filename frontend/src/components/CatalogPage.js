@@ -235,7 +235,7 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Brand
                   </label>
-                  <Select value={selectedBrand} onValueChange={setSelectedBrand}>
+                  <Select value={selectedBrand || ""} onValueChange={setSelectedBrand}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Brands" />
                     </SelectTrigger>
