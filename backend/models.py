@@ -105,6 +105,18 @@ class Address(BaseModel):
     country: str
     is_default: bool = False
 
+# Shipping address model
+class ShippingAddress(BaseModel):
+    full_name: str
+    address_line_1: str
+    address_line_2: Optional[str] = None
+    city: str
+    state: str
+    postal_code: str
+    country: str = "US"
+    phone: Optional[str] = None
+    is_default: bool = False
+
 # Token Models
 class Token(BaseModel):
     access_token: str
