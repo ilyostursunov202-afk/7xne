@@ -1118,6 +1118,17 @@ const AdminPanel = () => {
                   <table className="w-full border-collapse border border-gray-300">
                     <thead>
                       <tr className="bg-gray-50">
+                        <th className="border border-gray-300 px-4 py-3 text-left">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.length === products.length && products.length > 0}
+                              onChange={toggleSelectAllProducts}
+                              className="rounded"
+                            />
+                            <span className="ml-2 text-xs">Все</span>
+                          </div>
+                        </th>
                         <th className="border border-gray-300 px-4 py-3 text-left">Image</th>
                         <th className="border border-gray-300 px-4 py-3 text-left">Name</th>
                         <th className="border border-gray-300 px-4 py-3 text-left">Category</th>
