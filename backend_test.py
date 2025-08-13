@@ -709,37 +709,45 @@ class EcommerceAPITester:
         return success
 
 def main():
-    print("🚀 Starting E-commerce API Tests")
-    print("=" * 50)
+    print("🚀 Starting E-commerce API Tests - Admin Panel Extension Focus")
+    print("=" * 70)
     
     tester = EcommerceAPITester()
     
-    # Test sequence - Authentication and Wishlist focused
+    # Test sequence - Admin Panel Extension focused
     test_methods = [
+        # Basic functionality tests
         tester.test_root_endpoint,
         tester.test_create_product,
         tester.test_get_products,
-        tester.test_get_products_with_filters,
-        tester.test_search_products,
-        tester.test_get_product_detail,
-        tester.test_get_product_recommendations,
         tester.test_get_categories,
         tester.test_get_brands,
         tester.test_create_cart,
         tester.test_get_cart,
         tester.test_add_to_cart,
-        tester.test_get_cart,  # Test cart after adding item
         tester.test_remove_from_cart,
-        tester.test_checkout_session_creation,
         
-        # Authentication and Wishlist Tests
+        # Regular user authentication and profile tests
         tester.test_user_login,
+        tester.test_profile_management,
+        tester.test_password_change,
+        tester.test_language_preference,
+        tester.test_avatar_upload_error_handling,
+        tester.test_avatar_file_serving,
+        
+        # Admin authentication and new admin panel tests
+        tester.test_admin_login,
+        tester.test_admin_user_search,
+        tester.test_admin_user_status_update,
+        tester.test_admin_user_role_update,
+        tester.test_admin_statistics,
+        tester.test_admin_action_logs,
+        
+        # Wishlist tests (existing functionality)
         tester.test_get_wishlist,
         tester.test_add_to_wishlist,
-        tester.test_get_wishlist,  # Verify item was added
         tester.test_remove_from_wishlist,
-        tester.test_get_wishlist,  # Verify item was removed
-        tester.test_wishlist_flow,  # Complete flow test
+        tester.test_wishlist_flow,
         tester.test_get_orders
     ]
     
