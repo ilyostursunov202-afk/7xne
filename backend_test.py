@@ -27,8 +27,11 @@ class EcommerceAPITester:
         
         # Set authorization header if auth is required and we have a token
         headers = {}
-        if auth_required and self.access_token:
-            headers['Authorization'] = f'Bearer {self.access_token}'
+        if auth_required:
+            # Use admin token if available, otherwise use regular token
+            token = self.admin_token if hasattr(self, 'admin_token') and self.admin_token else self.access_token
+            if token:
+                headers['Authorization'] = f'Bearer {token}'
         
         try:
             if method == 'GET':
