@@ -8,6 +8,7 @@ import AdminPanel from './components/AdminPanel';
 import ProfileSettings from './components/ProfileSettings';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import EnhancedSearch from './components/EnhancedSearch';
+import EnhancedRegistration from './components/EnhancedRegistration';
 import CatalogPage from './components/CatalogPage';
 import { LanguageProvider, useTranslation } from './i18n/translations';
 import { Button } from './components/ui/button';
