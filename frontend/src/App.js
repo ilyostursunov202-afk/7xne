@@ -10,6 +10,7 @@ import LanguageSwitcher from './components/LanguageSwitcher';
 import EnhancedSearch from './components/EnhancedSearch';
 import EnhancedRegistration from './components/EnhancedRegistration';
 import CatalogPage from './components/CatalogPage';
+import CheckoutSuccess from './pages/CheckoutSuccess';
 import { LanguageProvider, useTranslation } from './i18n/translations';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
