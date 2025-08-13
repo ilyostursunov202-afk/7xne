@@ -66,12 +66,12 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
     try {
       setLoading(true);
       const [productsRes, categoriesRes, brandsRes] = await Promise.all([
-        api.get('/api/products'),
+        api.get('/api/products/search?limit=50'),  // Use search endpoint for consistency
         api.get('/api/categories'),
         api.get('/api/brands')
       ]);
       
-      setProducts(productsRes.data);
+      setProducts(productsRes.data.products || productsRes.data || []);
       setCategories(categoriesRes.data.categories || []);
       setBrands(brandsRes.data.brands || []);
     } catch (error) {
