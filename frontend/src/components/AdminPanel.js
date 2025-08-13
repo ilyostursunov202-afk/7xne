@@ -827,10 +827,28 @@ const AdminPanel = () => {
             <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <CardTitle className="flex items-center">
-                    <Users className="h-5 w-5 mr-2" />
-                    User Management ({users.length})
-                  </CardTitle>
+                  <div className="flex items-center space-x-4">
+                    <CardTitle className="flex items-center">
+                      <Users className="h-5 w-5 mr-2" />
+                      User Management ({users.length})
+                    </CardTitle>
+                    {selectedUsers.length > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">
+                          {selectedUsers.length} выбрано
+                        </span>
+                        <Button 
+                          onClick={handleMassDeleteUsers}
+                          disabled={isDeleting}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {isDeleting ? 'Удаление...' : 'Удалить выбранных'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
