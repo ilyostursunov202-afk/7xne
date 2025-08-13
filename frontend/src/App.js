@@ -791,9 +791,17 @@ const ProductCard = ({ product, onAddToCart, wishlist, onToggleWishlist }) => {
       <CardFooter className="p-4 pt-0">
         <div className="flex items-center justify-between w-full">
           <div className="flex flex-col">
-            <span className="text-lg font-bold text-blue-600">
-              ${product.price.toFixed(2)}
-            </span>
+            <div className="flex items-center">
+              {product.price_negotiable ? (
+                <span className="text-sm font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                  💬 Договорная
+                </span>
+              ) : (
+                <span className="text-lg font-bold text-blue-600">
+                  ${product.price.toFixed(2)}
+                </span>
+              )}
+            </div>
             {product.inventory > 0 ? (
               <span className="text-xs text-green-600">In Stock</span>
             ) : (
