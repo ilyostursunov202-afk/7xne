@@ -503,7 +503,7 @@ const AdminPanel = () => {
                           <DollarSign className="h-6 w-6 text-purple-600" />
                         </div>
                         <div className="ml-4">
-                          <p className="text-2xl font-bold text-gray-900">${statistics.order_stats.total_revenue}</p>
+                          <p className="text-2xl font-bold text-gray-900">${statistics.order_stats.total_revenue || 0}</p>
                           <p className="text-sm text-gray-600">Total Revenue</p>
                           <p className="text-xs text-purple-600">${statistics.order_stats.avg_order_value} avg</p>
                         </div>
