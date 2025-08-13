@@ -9,6 +9,7 @@ import {
   Plus,
   Edit,
   Trash2,
+  Trash2,
   Check,
   X,
   Clock,
