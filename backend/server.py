@@ -14,6 +14,18 @@ from dotenv import load_dotenv
 
 # Import our custom modules
 from models import *
+from verification_service import verification_service
+
+# Define SellerStats model locally since it's not in models.py
+class SellerStats(BaseModel):
+    total_products: int
+    total_sales: float
+    total_orders: int
+    average_rating: float
+    commission_earned: float
+    monthly_sales: Dict[str, float]
+    top_products: List[Dict]
+    recent_orders: List[Dict]
 from auth import AuthManager, get_current_user, get_current_user_required, get_admin_user, get_seller_user
 
 # Import AI and Stripe integrations
