@@ -105,17 +105,22 @@ const AdminPanel = () => {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
-      const [sellersRes, couponsRes, productsRes, ordersRes] = await Promise.all([
+      const [sellersRes, couponsRes, productsRes, ordersRes, statsRes] = await Promise.all([
         api.get('/api/admin/sellers'),
         api.get('/api/admin/coupons'),
         api.get('/api/products?limit=50'),
-        api.get('/api/admin/orders')
+        api.get('/api/admin/orders'),
+        api.get('/api/admin/statistics')
       ]);
       
       setSellers(sellersRes.data.sellers);
       setCoupons(couponsRes.data.coupons);
       setProducts(productsRes.data);
       setOrders(ordersRes.data.orders);
+      setStatistics(statsRes.data);
+      
+      // Fetch initial users
+      await fetchUsers();
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
