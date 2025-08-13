@@ -1723,8 +1723,8 @@ export default function App() {
             <main>
               <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/search" element={<SearchPage />} />
                 <Route path="/catalog" element={<CatalogPageWrapper />} />
+                <Route path="/search" element={<SearchPage />} />
                 <Route path="/cart" element={<CartPageWrapper />} />
                 <Route path="/product/:id" element={<ProductDetailPageWrapper />} />
                 <Route path="/wishlist" element={<WishlistPage />} />
