@@ -71,11 +71,24 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
         api.get('/api/brands')
       ]);
       
-      setProducts(productsRes.data.products || productsRes.data || []);
-      setCategories(categoriesRes.data.categories || []);
-      setBrands(brandsRes.data.brands || []);
+      const productsData = productsRes.data?.products || productsRes.data || [];
+      const categoriesData = categoriesRes.data?.categories || [];
+      const brandsData = brandsRes.data?.brands || [];
+      
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+      setBrands(Array.isArray(brandsData) ? brandsData : []);
+      
+      console.log('Loaded:', { 
+        products: productsData.length, 
+        categories: categoriesData.length, 
+        brands: brandsData.length 
+      });
     } catch (error) {
       console.error('Error fetching data:', error);
+      setProducts([]);
+      setCategories([]);
+      setBrands([]);
     } finally {
       setLoading(false);
     }
