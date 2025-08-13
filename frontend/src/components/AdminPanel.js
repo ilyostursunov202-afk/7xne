@@ -1081,7 +1081,25 @@ const AdminPanel = () => {
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle>Product Management ({products.length})</CardTitle>
+                  <div className="flex items-center space-x-4">
+                    <CardTitle>Product Management ({products.length})</CardTitle>
+                    {selectedProducts.length > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">
+                          {selectedProducts.length} выбрано
+                        </span>
+                        <Button 
+                          onClick={handleMassDeleteProducts}
+                          disabled={isDeleting}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {isDeleting ? 'Удаление...' : 'Удалить выбранные'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <Button 
                     onClick={() => {
                       resetProductForm();
