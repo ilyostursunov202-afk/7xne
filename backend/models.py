@@ -71,6 +71,8 @@ class UserResponse(BaseModel):
     email: str
     name: str
     phone: Optional[str] = None
+    phone_verified: bool = False
+    email_verified: bool = False
     avatar: Optional[str] = None
     role: UserRole
     created_at: datetime
