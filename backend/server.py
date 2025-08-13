@@ -1703,25 +1703,49 @@ async def create_checkout_session(request: CheckoutRequest, current_user = Depen
         if not cart.get("items"):
             raise HTTPException(status_code=400, detail="Cart is empty")
         
-        # Initialize Stripe checkout
+        # Initialize Stripe checkout with proper webhook URL
         global stripe_checkout
         if not stripe_checkout and STRIPE_API_KEY:
             webhook_url = f"{request.origin_url}/api/webhook/stripe"
             stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
         
         if not stripe_checkout:
-            raise HTTPException(status_code=500, detail="Stripe not configured")
+            raise HTTPException(status_code=500, detail="Stripe not configured - missing API key")
         
-        # Calculate total
-        total_amount = cart["total"]
-        discount_amount = 0.0
-        coupon_code = None
+        # Calculate total from cart items (secure server-side calculation)
+        total_amount = 0.0
+        cart_items = []
+        
+        for item in cart["items"]:
+            product = products_collection.find_one({"id": item["product_id"]})
+            if not product:
+                continue
+                
+            # Use server-side price to prevent manipulation
+            item_price = float(product.get("price", 0))
+            if product.get("price_negotiable", False):
+                # Skip negotiable price items or set to 0
+                item_price = 0.0
+                
+            quantity = int(item.get("quantity", 1))
+            item_total = item_price * quantity
+            total_amount += item_total
+            
+            cart_items.append({
+                "product_id": item["product_id"],
+                "name": product.get("name", "Unknown Product"),
+                "price": item_price,
+                "quantity": quantity,
+                "total": item_total
+            })
         
         # Apply coupon if provided
-        if hasattr(request, 'coupon_code') and request.coupon_code:
-            discount_amount, message = apply_coupon(
-                total_amount, 
-                request.coupon_code,
+        coupon_code = None
+        discount_amount = 0.0
+        if request.coupon_code:
+            discount_amount, message = await apply_coupon(
+                request.coupon_code, 
+                total_amount,
                 current_user["user_id"] if current_user else None,
                 cart.get("items", [])
             )
@@ -1731,13 +1755,17 @@ async def create_checkout_session(request: CheckoutRequest, current_user = Depen
             else:
                 raise HTTPException(status_code=400, detail=message)
         
-        # Create success and cancel URLs
+        # Ensure minimum amount
+        if total_amount <= 0:
+            raise HTTPException(status_code=400, detail="Cart total must be greater than 0")
+        
+        # Create success and cancel URLs using frontend origin  
         success_url = f"{request.origin_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = f"{request.origin_url}/checkout/cancel"
+        cancel_url = f"{request.origin_url}/cart"
         
         # Create checkout session request
         checkout_request = CheckoutSessionRequest(
-            amount=total_amount,
+            amount=float(total_amount),  # Ensure float format
             currency="usd",
             success_url=success_url,
             cancel_url=cancel_url,
@@ -1752,6 +1780,36 @@ async def create_checkout_session(request: CheckoutRequest, current_user = Depen
         
         # Create Stripe session
         session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Create payment transaction record
+        transaction_data = {
+            "id": str(uuid.uuid4()),
+            "session_id": session.session_id,
+            "cart_id": request.cart_id,
+            "user_id": current_user["user_id"] if current_user else "guest",
+            "amount": total_amount,
+            "currency": "usd",
+            "payment_status": "pending",
+            "status": "initiated",
+            "cart_items": cart_items,
+            "coupon_code": coupon_code,
+            "discount_amount": discount_amount,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        payment_transactions_collection.insert_one(transaction_data)
+        
+        return {
+            "url": session.url,
+            "session_id": session.session_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Checkout session error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
         
         # Create order with seller information and commission calculation
         order_items = []
