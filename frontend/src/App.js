@@ -1648,8 +1648,26 @@ const AdminPanelWrapper = () => {
   return <AdminPanel />;
 };
 
-// Product detail page wrapper  
-const ProductDetailPageWrapper = () => {
+// Profile settings wrapper
+const ProfileSettingsWrapper = () => {
+  const { user, setUser } = useAppContext();
+  
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-4">You need to be logged in to access profile settings.</p>
+          <Button onClick={() => window.history.back()}>
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  return <ProfileSettings user={user} onUserUpdate={setUser} />;
+};
   const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
   
   const handleWishlistToggle = (productId) => {
