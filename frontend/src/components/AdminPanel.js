@@ -13,7 +13,16 @@ import {
   X,
   Clock,
   AlertCircle,
-  Tag
+  Tag,
+  Search,
+  Filter,
+  Eye,
+  BarChart3,
+  Activity,
+  TrendingUp,
+  Shield,
+  UserX,
+  UserCheck
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
