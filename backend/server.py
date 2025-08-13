@@ -1811,6 +1811,76 @@ async def create_checkout_session(request: CheckoutRequest, current_user = Depen
         print(f"Checkout session error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
 
+# Stripe Webhook Endpoint  
+@app.post("/api/webhook/stripe")
+async def stripe_webhook(request: Request):
+    try:
+        body = await request.body()
+        signature = request.headers.get("Stripe-Signature")
+        
+        if not stripe_checkout:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
+        
+        # Handle webhook
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        # Update payment transaction
+        if webhook_response.session_id:
+            transaction = payment_transactions_collection.find_one({"session_id": webhook_response.session_id})
+            if transaction:
+                update_data = {
+                    "status": webhook_response.event_type,
+                    "payment_status": webhook_response.payment_status,
+                    "updated_at": datetime.now(timezone.utc)
+                }
+                
+                payment_transactions_collection.update_one(
+                    {"session_id": webhook_response.session_id},
+                    {"$set": update_data}
+                )
+                
+                # If payment successful, create order
+                if webhook_response.payment_status == "paid":
+                    await process_successful_payment(transaction)
+        
+        return {"status": "success"}
+        
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+async def process_successful_payment(transaction_data: dict):
+    """Process successful payment and create order"""
+    try:
+        # Create order from transaction
+        order_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": transaction_data.get("user_id"),
+            "items": transaction_data.get("cart_items", []),
+            "total_amount": transaction_data.get("amount", 0),
+            "status": "confirmed",
+            "payment_session_id": transaction_data.get("session_id"),
+            "coupon_code": transaction_data.get("coupon_code"),
+            "discount_amount": transaction_data.get("discount_amount", 0),
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        orders_collection.insert_one(order_data)
+        
+        # Clear cart
+        cart_id = transaction_data.get("cart_id")
+        if cart_id:
+            cart_collection.update_one(
+                {"id": cart_id},
+                {"$set": {"items": [], "total": 0.0, "updated_at": datetime.now(timezone.utc)}}
+            )
+        
+        print(f"✅ Order created successfully for session: {transaction_data.get('session_id')}")
+        
+    except Exception as e:
+        print(f"Error processing successful payment: {e}")
+
 
 # Enhanced User Management for Admin Panel
 @app.get("/api/admin/users/search")
