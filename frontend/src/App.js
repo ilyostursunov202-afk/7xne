@@ -1648,6 +1648,27 @@ const AdminPanelWrapper = () => {
   return <AdminPanel />;
 };
 
+// Product detail page wrapper  
+const ProductDetailPageWrapper = () => {
+  const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
+  
+  const handleWishlistToggle = (productId) => {
+    if (wishlist.some(item => item.id === productId)) {
+      removeFromWishlist(productId);
+    } else {
+      addToWishlist(productId);
+    }
+  };
+
+  return (
+    <ProductDetailPage 
+      addToCart={addToCart} 
+      wishlist={wishlist}
+      onToggleWishlist={handleWishlistToggle}
+    />
+  );
+};
+
 // Profile settings wrapper
 const ProfileSettingsWrapper = () => {
   const { user, setUser } = useAppContext();
@@ -1667,24 +1688,6 @@ const ProfileSettingsWrapper = () => {
   }
   
   return <ProfileSettings user={user} onUserUpdate={setUser} />;
-};
-  const { addToCart, wishlist, addToWishlist, removeFromWishlist } = useAppContext();
-  
-  const handleWishlistToggle = (productId) => {
-    if (wishlist.some(item => item.id === productId)) {
-      removeFromWishlist(productId);
-    } else {
-      addToWishlist(productId);
-    }
-  };
-
-  return (
-    <ProductDetailPage 
-      addToCart={addToCart} 
-      wishlist={wishlist}
-      onToggleWishlist={handleWishlistToggle}
-    />
-  );
 };
 export default function App() {
   return (
