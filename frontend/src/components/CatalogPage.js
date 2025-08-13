@@ -338,19 +338,21 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
               
               <div className="flex items-center gap-4">
                 {/* Sort */}
-                <Select value={sortBy || "name"} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name A-Z</SelectItem>
-                    <SelectItem value="name_desc">Name Z-A</SelectItem>
-                    <SelectItem value="price">Price Low-High</SelectItem>
-                    <SelectItem value="price_desc">Price High-Low</SelectItem>
-                    <SelectItem value="rating">Best Rating</SelectItem>
-                    <SelectItem value="newest">Newest</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Sort by:</span>
+                  <select 
+                    value={sortBy || "name"} 
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="border border-gray-300 rounded px-3 py-1 text-sm"
+                  >
+                    <option value="name">Name A-Z</option>
+                    <option value="name_desc">Name Z-A</option>
+                    <option value="price">Price Low-High</option>
+                    <option value="price_desc">Price High-Low</option>
+                    <option value="rating">Best Rating</option>
+                    <option value="newest">Newest</option>
+                  </select>
+                </div>
 
                 {/* View Toggle */}
                 <div className="flex border border-gray-300 rounded-lg">
