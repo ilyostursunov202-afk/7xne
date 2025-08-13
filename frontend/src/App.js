@@ -452,7 +452,8 @@ const RegisterForm = ({ onClose }) => {
 
 // Header Component (Enhanced)
 const Header = () => {
-  const { cartCount, user, logout } = useAppContext();
+  const { cartCount, user, logout, setUser } = useAppContext();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -473,6 +474,10 @@ const Header = () => {
     } else {
       setShowRegisterModal(true);
     }
+  };
+
+  const handleUserUpdate = (updatedUser) => {
+    setUser(updatedUser);
   };
 
   return (
@@ -496,7 +501,7 @@ const Header = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   type="text"
-                  placeholder="Search products, brands, categories..."
+                  placeholder={t('search') + ' products, brands, categories...'}
                   className="pl-10 pr-4 w-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -505,7 +510,10 @@ const Header = () => {
             </form>
 
             {/* Navigation */}
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
+              {/* Language Switcher */}
+              <LanguageSwitcher />
+              
               {user ? (
                 <div className="flex items-center space-x-4">
                   <Tooltip>
@@ -517,11 +525,11 @@ const Header = () => {
                         className="flex items-center space-x-2"
                       >
                         <Heart className="h-4 w-4" />
-                        <span className="hidden md:inline">Wishlist</span>
+                        <span className="hidden md:inline">{t('wishlist')}</span>
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>View Wishlist</p>
+                      <p>{t('wishlist')}</p>
                     </TooltipContent>
                   </Tooltip>
 
@@ -546,7 +554,7 @@ const Header = () => {
                           onClick={() => navigate('/profile')}
                         >
                           <Settings className="h-4 w-4 mr-2" />
-                          Profile Settings
+                          {t('profileSettings')}
                         </Button>
                         <Button 
                           variant="ghost" 
@@ -554,7 +562,7 @@ const Header = () => {
                           onClick={() => navigate('/orders')}
                         >
                           <Package className="h-4 w-4 mr-2" />
-                          Order History
+                          {t('orders')}
                         </Button>
                         <Button 
                           variant="ghost" 
@@ -562,7 +570,7 @@ const Header = () => {
                           onClick={() => navigate('/wishlist')}
                         >
                           <Heart className="h-4 w-4 mr-2" />
-                          Wishlist
+                          {t('wishlist')}
                         </Button>
                         {user.role === 'admin' && (
                           <Button 
@@ -571,7 +579,7 @@ const Header = () => {
                             onClick={() => navigate('/admin')}
                           >
                             <UserCheck className="h-4 w-4 mr-2" />
-                            Admin Panel
+                            {t('admin')}
                           </Button>
                         )}
                         <Separator />
@@ -581,7 +589,7 @@ const Header = () => {
                           onClick={logout}
                         >
                           <LogOut className="h-4 w-4 mr-2" />
-                          Logout
+                          {t('logout')}
                         </Button>
                       </div>
                     </SheetContent>
@@ -594,14 +602,14 @@ const Header = () => {
                     size="sm"
                     onClick={() => handleAuthModal('login')}
                   >
-                    Login
+                    {t('login')}
                   </Button>
                   <Button 
                     size="sm"
                     onClick={() => handleAuthModal('register')}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    Sign Up
+                    {t('signup')}
                   </Button>
                 </div>
               )}
@@ -613,7 +621,7 @@ const Header = () => {
                 onClick={() => navigate('/cart')}
               >
                 <ShoppingCart className="h-4 w-4" />
-                <span className="hidden md:inline">Cart</span>
+                <span className="hidden md:inline">{t('cart')}</span>
                 {cartCount > 0 && (
                   <Badge className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs min-w-[20px] h-5 flex items-center justify-center rounded-full">
                     {cartCount}
@@ -628,7 +636,7 @@ const Header = () => {
         <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Login to Your Account</DialogTitle>
+              <DialogTitle>{t('login')}</DialogTitle>
             </DialogHeader>
             <LoginForm onClose={() => setShowLoginModal(false)} />
             <div className="text-center mt-4">
@@ -639,7 +647,7 @@ const Header = () => {
                   setShowRegisterModal(true);
                 }}
               >
-                Don't have an account? Sign up
+                Don't have an account? {t('signup')}
               </Button>
             </div>
           </DialogContent>
@@ -649,7 +657,7 @@ const Header = () => {
         <Dialog open={showRegisterModal} onOpenChange={setShowRegisterModal}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Your Account</DialogTitle>
+              <DialogTitle>{t('signup')}</DialogTitle>
             </DialogHeader>
             <RegisterForm onClose={() => setShowRegisterModal(false)} />
             <div className="text-center mt-4">
@@ -660,7 +668,7 @@ const Header = () => {
                   setShowLoginModal(true);
                 }}
               >
-                Already have an account? Login
+                Already have an account? {t('login')}
               </Button>
             </div>
           </DialogContent>
