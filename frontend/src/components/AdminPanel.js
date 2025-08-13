@@ -307,7 +307,7 @@ const AdminPanel = () => {
     try {
       const productData = {
         ...productForm,
-        price: parseFloat(productForm.price),
+        price: productForm.price_negotiable ? 0 : parseFloat(productForm.price),
         inventory: parseInt(productForm.inventory),
         images: productForm.images.split('\n').filter(url => url.trim()),
         tags: productForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
