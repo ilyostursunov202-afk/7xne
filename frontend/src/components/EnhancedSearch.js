@@ -67,8 +67,8 @@ const EnhancedSearch = ({ className = "" }) => {
     try {
       setLoading(true);
       const response = await api.get(`/api/products/search?q=${encodeURIComponent(searchQuery)}&limit=6`);
-      const products = response.data.products || response.data || [];
-      setSuggestions(products);
+      const products = response.data?.products || response.data || [];
+      setSuggestions(Array.isArray(products) ? products : []);
     } catch (error) {
       console.error('Error fetching suggestions:', error);
       setSuggestions([]);
