@@ -27,6 +27,8 @@ class UserCreate(BaseModel):
     phone: Optional[str] = None
     role: UserRole = UserRole.CUSTOMER
     seller_application: Optional[SellerApplication] = None
+    # Registration with shipping address
+    shipping_address: Optional[Dict[str, Any]] = None
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
