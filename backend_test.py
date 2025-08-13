@@ -510,13 +510,13 @@ class EcommerceAPITester:
             print("⚠️  Skipping admin user role test - no regular user ID available")
             return False
         
-        # Test changing role to seller
+        # Test changing role to seller (send as query parameter)
         success1 = self.run_test(
             "Admin Change User Role to Seller",
             "PUT",
             f"/api/admin/users/{self.user_id}/role",
             200,
-            data={"role": "seller"},
+            params={"role": "seller"},
             auth_required=True
         )[0]
         
@@ -526,7 +526,7 @@ class EcommerceAPITester:
             "PUT",
             f"/api/admin/users/{self.user_id}/role",
             200,
-            data={"role": "customer"},
+            params={"role": "customer"},
             auth_required=True
         )[0]
         
