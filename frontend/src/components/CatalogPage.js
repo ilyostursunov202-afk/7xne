@@ -314,7 +314,7 @@ const CatalogPage = ({ addToCart, wishlist = [], onToggleWishlist }) => {
               
               <div className="flex items-center gap-4">
                 {/* Sort */}
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy || "name"} onValueChange={setSortBy}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
