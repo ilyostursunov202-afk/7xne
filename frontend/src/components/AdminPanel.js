@@ -293,6 +293,7 @@ const AdminPanel = () => {
       name: '',
       description: '',
       price: '',
+      price_negotiable: false,
       category: '',
       brand: '',
       inventory: '',
